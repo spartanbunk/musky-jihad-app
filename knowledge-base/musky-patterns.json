@@ -1,0 +1,150 @@
+{
+  "species": "musky",
+  "lake": "Lake St. Clair",
+  "last_updated": "2024-08-10",
+  "confidence_level": 10,
+  "source": "The St. Clair Code - Expert Guide Knowledge",
+  
+  "environmental_system": {
+    "primary_driver": "current",
+    "current_flow": "183,000 cubic feet per second from St. Clair River",
+    "system_flush_rate": "complete system flush every 4 days",
+    "average_current_increase": "1+ mph due to high water levels",
+    "depth_changes": {
+      "historical_average": "11 feet",
+      "current_average": "15+ feet",
+      "volume_increase": "36%"
+    },
+    "water_clarity": "increasingly clear, affecting patterns",
+    "key_concept": "Current edge is structure - like weed edge for fish positioning"
+  },
+
+  "temperature_patterns": {
+    "spawn_trigger": 51,
+    "optimal_feeding_range": [67, 72],
+    "peak_season_range": [70, 79],
+    "metabolism_shifts": {
+      "below_50": "concentrated, heavy feeding for winter prep",
+      "50_59": "transition periods, spring recovery or fall aggression",
+      "60_69": "increasing activity, establishing patterns",
+      "70_79": "peak activity, established summer patterns",
+      "above_80": "thermal refuge seeking, short feeding windows"
+    },
+    "seasonal_calendar": {
+      "spawn": "early to mid-May at 51°F",
+      "peak_season": "third week June through late September",
+      "trophy_season": "late September through December close"
+    }
+  },
+
+  "location_patterns": {
+    "primary_structure": "cabbage beds - most critical habitat",
+    "key_areas": {
+      "river_mouths": ["Thames", "Belle", "Clinton", "Ruscom", "Puce"],
+      "channels": "main shipping channel edges",
+      "weed_types": ["cabbage (primary)", "milfoil", "eelgrass (fall transition)"],
+      "bottom_transitions": "sand breaks with cabbage edges",
+      "open_water_weeds": "cabbage grows 8-12 feet deep, 2-5 feet off bottom"
+    },
+    "spot_on_spot_concept": "stack positive factors - cabbage + sand break + current seam + stained water + baitfish",
+    "seasonal_shifts": "population moving east/southeast due to cooler overall temperatures"
+  },
+
+  "forage_base": {
+    "primary_species": ["gizzard shad", "white bass", "yellow perch"],
+    "scientific_study": "2018 diet study - 167 muskies, white bass most common prey",
+    "guide_consensus": "gizzard shad most critical to locate",
+    "bait_location_strategy": "follow plankton concentrations in turbid, nutrient-rich water"
+  },
+
+  "lunar_influence": {
+    "scientific_backing": "2014 PLOS ONE study - 341,959 catch records",
+    "lake_st_clair_effect": "26.4% maximum relative effect",
+    "peak_periods": {
+      "new_moon": "prolonged, sustained feeding - ideal for multi-day trips",
+      "full_moon": "short, intense feeding windows - night fishing effective",
+      "quarter_moons": "neutral periods",
+      "daily_triggers": "moonrise/moonset - brief but distinct feeding windows"
+    }
+  },
+
+  "wind_water_clarity": {
+    "strategy": "chase the mud - wind creates productive turbidity",
+    "preferred_conditions": "teal hue, 3-5 feet visibility",
+    "wind_effect": "creates nutrient concentrations attracting shad",
+    "color_selection": {
+      "clear_water": "natural patterns - perch, shad, walleye",
+      "stained_sunny": "bright colors - Firetiger, clown, orange",
+      "stained_overcast": "dark solid colors - black silhouettes"
+    }
+  },
+
+  "tactics": {
+    "trolling": {
+      "primary_purpose": "search tool for vast water coverage",
+      "speed_evolution": "decreased from 5+ mph to 3.4-4.0 mph range",
+      "sweet_spot": "3.8 mph consensus",
+      "clear_water_adjustment": "increase to 5-7 mph for reaction strikes",
+      "depth_strategy": "75% of strikes in top 4 feet even over 15-20 feet",
+      "spread_requirements": "wide spread using planer boards (TX-44)",
+      "program_concept": "systematic testing of variables per rod",
+      "key_lures": ["Spanky", "Ziggies", "Blue Waters", "Muskie Train", "Boss Shad", "Jakes", "Believers", "Headlock", "Matlock", "Musky Mayhem Trolling Girl"]
+    },
+    "casting": {
+      "primary_purpose": "precision triggering of located/pressured fish",
+      "advantage": "erratic, non-linear action trollers can't replicate",
+      "anti_troller_strategy": "avoid standard trolling lures in pressured areas",
+      "primary_baits": ["Musky Innovations Magnum Bull Dawg", "Chaos Tackle Medussa", "Waterwolf Shadzilla"],
+      "key_technique": "yo-yo ripping - sharp rips with slack line pause",
+      "strike_timing": "strikes occur during pause/fall",
+      "figure_eight": "20-40% of strikes occur at boatside - critical technique",
+      "seasonal_adjustments": {
+        "summer": "aggressive, fast retrieve",
+        "spring_fall": "slower with longer pauses"
+      }
+    }
+  },
+
+  "lure_categories": {
+    "big_rubber": {
+      "baits": ["Magnum Bull Dawg", "Chaos Medussa/Poseidon", "Waterwolf Shadzilla", "Toddy Tickle Warhammer"],
+      "technique": "yo-yo retrieve - rip and pause",
+      "effectiveness": "year-round, adjust cadence by temperature"
+    },
+    "bucktails": {
+      "baits": ["Double #9/#10 bucktails", "Musky Mayhem Cowgirls"],
+      "technique": "straight, steady retrieve, vary speed",
+      "conditions": "active fish, feeding high in water column",
+      "temperature_limit": "becomes less effective below 55°F"
+    },
+    "gliders_jerkbaits": {
+      "baits": ["Hellhounds", "Phantoms", "weighted Suicks"],
+      "technique": "erratic side-to-side action, downward rod taps",
+      "effectiveness": "excellent for neutral fish around structure"
+    },
+    "deepwater_jigs": {
+      "baits": ["Bondy Bait", "Large Hair Jigs"],
+      "technique": "vertical jigging deep structure",
+      "timing": "late fall/early winter in rivers"
+    }
+  },
+
+  "safety_conservation": {
+    "safety_priority": "large shallow water - dangerous conditions develop quickly",
+    "required_equipment": ["reliable boat", "safety gear", "marine radio"],
+    "catch_release_ethic": "decades of conservation created world-class fishery",
+    "proper_tools": ["Magnum Drifter net", "Knipex hook cutters", "long-nosed pliers"]
+  },
+
+  "digital_intelligence": {
+    "reddit_sources": ["r/muskiefishing", "r/MichiganFishing"],
+    "youtube_value": "visual techniques, real-time patterns, new technology adoption",
+    "application": "ground-truth established patterns, adapt to daily conditions"
+  },
+
+  "guide_recommendations": {
+    "learning_acceleration": "hire reputable local guide for specialized knowledge",
+    "cited_experts": ["Jon Bondy", "Don Miller"],
+    "value_proposition": "decades of on-water knowledge vs. season of trial and error"
+  }
+}

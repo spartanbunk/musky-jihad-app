@@ -1,0 +1,153 @@
+{
+  "species": "bass",
+  "types": ["smallmouth", "largemouth"],
+  "lake": "Lake St. Clair",
+  "patterns": [
+    {
+      "name": "Rocky Shoal Smallmouth",
+      "target_species": "smallmouth",
+      "season": ["spring", "summer", "fall"],
+      "conditions": {
+        "water_temp_range": [60, 75],
+        "preferred_depth": [8, 20],
+        "wind": "light to moderate helpful",
+        "water_clarity": "clear to slightly stained"
+      },
+      "behavior": {
+        "feeding_pattern": "ambush from rock cover",
+        "preferred_structure": "rocky shoals, boulder fields",
+        "activity_level": "high on Lake St. Clair"
+      },
+      "techniques": {
+        "lures": ["tube jigs", "drop shot", "crankbaits", "spinnerbait"],
+        "presentation": "slow, precise casts to structure",
+        "areas": "rock piles 10-18 feet"
+      },
+      "success_indicators": [
+        "visible rock structure",
+        "crayfish activity",
+        "baitfish schools over rocks"
+      ]
+    },
+    {
+      "name": "Weed Edge Largemouth",
+      "target_species": "largemouth",
+      "season": ["spring", "summer"],
+      "conditions": {
+        "water_temp_range": [65, 80],
+        "preferred_depth": [5, 12],
+        "wind": "any",
+        "vegetation": "healthy weed growth"
+      },
+      "behavior": {
+        "feeding_pattern": "ambush from heavy cover",
+        "preferred_structure": "weed edges, pockets in vegetation",
+        "activity_level": "moderate to high"
+      },
+      "techniques": {
+        "lures": ["texas rig", "carolina rig", "topwater", "chatterbait"],
+        "presentation": "work through and around weeds",
+        "areas": "weedy bays and flats"
+      },
+      "success_indicators": [
+        "healthy vegetation",
+        "baitfish activity in weeds",
+        "low boat traffic"
+      ]
+    },
+    {
+      "name": "Dock and Structure Bass",
+      "target_species": "both",
+      "season": ["spring", "summer", "fall"],
+      "conditions": {
+        "water_temp_range": [60, 78],
+        "preferred_depth": [6, 15],
+        "structure": "docks, cribs, artificial structure",
+        "time_of_day": ["dawn", "dusk", "overcast"]
+      },
+      "behavior": {
+        "feeding_pattern": "relating to shade and structure",
+        "preferred_structure": "docks, boat lifts, cribs",
+        "activity_level": "consistent"
+      },
+      "techniques": {
+        "lures": ["jigs", "soft plastics", "crankbaits", "spinnerbait"],
+        "presentation": "target shaded areas and structure",
+        "areas": "residential areas with docks"
+      },
+      "success_indicators": [
+        "abundant dock structure",
+        "shaded areas",
+        "minimal disturbance"
+      ]
+    },
+    {
+      "name": "Spring Spawn Pattern",
+      "target_species": "both",
+      "season": "spring",
+      "conditions": {
+        "water_temp_range": [55, 65],
+        "preferred_depth": [3, 8],
+        "substrate": "gravel, sand, hard bottom",
+        "protection": "wind protected bays"
+      },
+      "behavior": {
+        "feeding_pattern": "pre-spawn feeding, spawn protection",
+        "preferred_structure": "shallow flats with hard bottom",
+        "activity_level": "very high pre-spawn, territorial during spawn"
+      },
+      "techniques": {
+        "lures": ["jigs", "soft plastics", "crankbaits", "spinnerbait"],
+        "presentation": "methodical coverage of spawning areas",
+        "areas": "protected shallow bays"
+      },
+      "success_indicators": [
+        "rising water temperature",
+        "visible beds (clear water)",
+        "increased bass activity in shallows"
+      ]
+    }
+  ],
+  "lake_specific_notes": {
+    "smallmouth_areas": [
+      "canadian waters rocky areas",
+      "anchor bay rock piles",
+      "st. clair river mouth",
+      "fighting island area"
+    ],
+    "largemouth_areas": [
+      "muscamoot bay",
+      "anchor bay weed beds",
+      "bassett creek area",
+      "protected bays and canals"
+    ],
+    "seasonal_movements": {
+      "spring": "shallow warming areas for spawning",
+      "summer": "structure related, deeper during hot days",
+      "fall": "feeding heavily before winter",
+      "winter": "deep water, inactive"
+    },
+    "forage_base": ["crayfish", "gobies", "perch", "shad"]
+  },
+  "techniques": {
+    "smallmouth_preferred": ["tube jigs", "drop shot", "crankbaits", "live bait"],
+    "largemouth_preferred": ["texas rig", "carolina rig", "topwater", "spinnerbait"],
+    "versatile_lures": ["jigs", "soft plastics", "crankbaits"]
+  },
+  "environmental_factors": {
+    "water_clarity": {
+      "clear": "natural colors, finesse presentations",
+      "stained": "brighter colors, more aggressive presentations",
+      "muddy": "loud, vibrating lures"
+    },
+    "wind": {
+      "calm": "topwater and finesse techniques",
+      "windy": "spinnerbaits and moving baits"
+    }
+  },
+  "confidence_factors": {
+    "high_confidence": ["water temperature", "structure presence", "seasonal timing"],
+    "moderate_confidence": ["weather stability", "water clarity"],
+    "variable": ["time of day", "moon phase"]
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "species": "pike",
+  "lake": "Lake St. Clair",
+  "patterns": [
+    {
+      "name": "Shallow Bay Ambush",
+      "season": ["spring", "summer"],
+      "conditions": {
+        "water_temp_range": [50, 70],
+        "preferred_depth": [3, 8],
+        "vegetation": "heavy weed cover",
+        "water_clarity": "stained to murky preferred"
+      },
+      "behavior": {
+        "feeding_pattern": "ambush predator in heavy cover",
+        "preferred_structure": "weed beds, fallen trees, shallow bays",
+        "activity_level": "high in appropriate habitat"
+      },
+      "techniques": {
+        "lures": ["spinnerbait", "spoon", "large soft plastic", "live bait"],
+        "presentation": "fast retrieve through weeds",
+        "areas": "weedy bays 4-6 feet deep"
+      },
+      "success_indicators": [
+        "thick vegetation",
+        "baitfish activity",
+        "minimal boat pressure"
+      ]
+    },
+    {
+      "name": "Weed Edge Patrol",
+      "season": ["summer", "fall"],
+      "conditions": {
+        "water_temp_range": [60, 75],
+        "preferred_depth": [6, 12],
+        "structure": "weed edges, drop-offs",
+        "wind": "light wind helpful"
+      },
+      "behavior": {
+        "feeding_pattern": "cruising weed edges for prey",
+        "preferred_structure": "transition zones from weeds to open water",
+        "activity_level": "moderate to high"
+      },
+      "techniques": {
+        "lures": ["spinnerbait", "chatterbait", "jerkbait", "soft plastic"],
+        "presentation": "parallel to weed edges",
+        "areas": "weed lines in 8-10 feet"
+      },
+      "success_indicators": [
+        "defined weed edges",
+        "baitfish schools along edges",
+        "temperature breaks"
+      ]
+    },
+    {
+      "name": "Spring Spawn Aggression",
+      "season": "spring",
+      "conditions": {
+        "water_temp_range": [40, 55],
+        "preferred_depth": [2, 6],
+        "substrate": "soft bottom bays",
+        "timing": "post ice-out to mid-spring"
+      },
+      "behavior": {
+        "feeding_pattern": "aggressive pre and post spawn feeding",
+        "preferred_structure": "shallow protected bays",
+        "activity_level": "very high"
+      },
+      "techniques": {
+        "lures": ["large spoon", "spinnerbait", "jerkbait", "live bait"],
+        "presentation": "aggressive, flashy presentations",
+        "areas": "shallow spawning bays"
+      },
+      "success_indicators": [
+        "warming shallow water",
+        "pike moving into spawning areas",
+        "increased activity levels"
+      ]
+    },
+    {
+      "name": "Cold Water Pattern",
+      "season": ["late fall", "winter", "early spring"],
+      "conditions": {
+        "water_temp_range": [35, 50],
+        "preferred_depth": [8, 15],
+        "metabolism": "slower due to cold water",
+        "structure": "deeper weed edges"
+      },
+      "behavior": {
+        "feeding_pattern": "slower, more deliberate feeding",
+        "preferred_structure": "deeper weed edges, structure",
+        "activity_level": "lower, but still catchable"
+      },
+      "techniques": {
+        "lures": ["slow moving jigs", "dead bait", "slow spoons"],
+        "presentation": "very slow, methodical",
+        "areas": "deeper structure 10-15 feet"
+      },
+      "success_indicators": [
+        "cold water temperatures",
+        "fish holding deeper",
+        "slower baitfish activity"
+      ]
+    }
+  ],
+  "lake_specific_notes": {
+    "prime_areas": [
+      "muscamoot bay",
+      "anchor bay shallow areas",
+      "st. johns marsh",
+      "weed beds throughout the lake"
+    ],
+    "seasonal_movements": {
+      "spring": "shallow bays for spawning",
+      "summer": "weed beds and edges",
+      "fall": "following baitfish",
+      "winter": "deeper weed edges"
+    },
+    "forage_base": ["white perch", "small fish", "frogs", "ducklings"],
+    "weed_types": ["cabbage", "coontail", "milfoil", "wild celery"]
+  },
+  "techniques": {
+    "preferred_lures": ["spinnerbait", "spoon", "jerkbait", "large soft plastics"],
+    "live_bait": ["large minnows", "suckers", "frogs"],
+    "presentation_tips": [
+      "fast retrieve often triggers strikes",
+      "work edges and transitions",
+      "use heavy tackle - pike fight hard"
+    ]
+  },
+  "equipment_considerations": {
+    "rod": "medium-heavy to heavy action",
+    "line": "heavy braid or fluorocarbon",
+    "leader": "steel or heavy fluorocarbon essential",
+    "hooks": "strong, sharp hooks"
+  },
+  "environmental_factors": {
+    "water_temperature": {
+      "effect": "directly affects metabolism and activity",
+      "optimal_range": [55, 70],
+      "cold_water_strategy": "slow presentations"
+    },
+    "vegetation": {
+      "importance": "critical habitat component",
+      "types": "prefer areas with varied vegetation",
+      "edges": "most productive areas"
+    }
+  },
+  "confidence_factors": {
+    "high_confidence": ["vegetation presence", "water temperature", "baitfish activity"],
+    "moderate_confidence": ["weather stability", "time of day"],
+    "variable": ["moon phase", "barometric pressure"]
+  }
+}

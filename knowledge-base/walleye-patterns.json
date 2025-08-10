@@ -1,0 +1,132 @@
+{
+  "species": "walleye",
+  "lake": "Lake St. Clair",
+  "patterns": [
+    {
+      "name": "Canadian Channel Structure",
+      "season": ["summer", "fall"],
+      "conditions": {
+        "water_temp_range": [60, 72],
+        "preferred_depth": [18, 30],
+        "wind": "any",
+        "time_of_day": ["dawn", "dusk", "night"]
+      },
+      "behavior": {
+        "feeding_pattern": "school fish following baitfish",
+        "preferred_structure": "shipping channel edges, humps",
+        "activity_level": "consistent"
+      },
+      "techniques": {
+        "lures": ["jig and minnow", "crawler harness", "crankbait"],
+        "presentation": "bottom contact, steady retrieve",
+        "areas": "channel edges 20-25 feet"
+      },
+      "success_indicators": [
+        "baitfish schools on sonar",
+        "current breaks",
+        "temperature gradients"
+      ]
+    },
+    {
+      "name": "Spring Spawn Run",
+      "season": "spring",
+      "conditions": {
+        "water_temp_range": [42, 55],
+        "preferred_depth": [6, 15],
+        "weather": "stable conditions post ice-out",
+        "location": "river mouths and tributaries"
+      },
+      "behavior": {
+        "feeding_pattern": "pre and post spawn feeding",
+        "preferred_structure": "rocky areas, current",
+        "activity_level": "very high"
+      },
+      "techniques": {
+        "lures": ["jig and minnow", "blade baits", "small crankbaits"],
+        "presentation": "slow, bottom oriented",
+        "areas": "detroit river, clinton river mouths"
+      },
+      "success_indicators": [
+        "rising water temperature",
+        "increased daylight hours",
+        "fish staging near spawning areas"
+      ]
+    },
+    {
+      "name": "Summer Deep Water School",
+      "season": "summer",
+      "conditions": {
+        "water_temp_range": [65, 75],
+        "preferred_depth": [25, 40],
+        "wind": "moderate helpful for boat control",
+        "time_of_day": "any, but dawn/dusk best"
+      },
+      "behavior": {
+        "feeding_pattern": "schooling over deep structure",
+        "preferred_structure": "humps, drop-offs, channel bends",
+        "activity_level": "moderate to high"
+      },
+      "techniques": {
+        "lures": ["bottom bouncers", "three way rigs", "deep crankbaits"],
+        "presentation": "vertical jigging, trolling",
+        "areas": "deep water structure 25-35 feet"
+      },
+      "success_indicators": [
+        "schools on electronics",
+        "consistent water temperature",
+        "baitfish presence"
+      ]
+    },
+    {
+      "name": "Night Bite Pattern",
+      "season": ["spring", "summer", "fall"],
+      "conditions": {
+        "water_temp_range": [55, 70],
+        "preferred_depth": [12, 25],
+        "moon_phase": "any, darker nights often better",
+        "weather": "calm to light wind"
+      },
+      "behavior": {
+        "feeding_pattern": "shallow water feeding at night",
+        "preferred_structure": "flats adjacent to deep water",
+        "activity_level": "high after dark"
+      },
+      "techniques": {
+        "lures": ["jig and minnow", "live bait rigs", "slow death hooks"],
+        "presentation": "slow, methodical",
+        "areas": "flats in 15-20 feet"
+      },
+      "success_indicators": [
+        "calm surface conditions",
+        "baitfish movement to shallows",
+        "consistent boat traffic during day"
+      ]
+    }
+  ],
+  "lake_specific_notes": {
+    "key_structures": ["canadian shipping channel", "anchor bay", "muscamoot bay"],
+    "seasonal_movements": {
+      "spring": "river mouths and warming bays",
+      "summer": "deep structure and channels",
+      "fall": "following baitfish schools",
+      "winter": "deep basins"
+    },
+    "primary_forage": ["emerald shiner", "gizzard shad", "round goby"],
+    "productive_areas": [
+      "canadian middle channel",
+      "anchor bay flats",
+      "detroit river mouth",
+      "belle isle area"
+    ]
+  },
+  "techniques": {
+    "preferred_baits": ["nightcrawler", "minnows", "leeches"],
+    "productive_lures": ["jigs", "crankbaits", "spinner rigs"],
+    "boat_positioning": ["use gps to stay on structure", "drift with wind when possible"]
+  },
+  "confidence_factors": {
+    "high_confidence": ["depth", "structure presence", "water temperature"],
+    "moderate_confidence": ["time of day", "wind conditions"],
+    "variable": ["moon phase", "barometric pressure"]
+  }
+}

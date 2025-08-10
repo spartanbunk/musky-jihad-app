@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3010:3010"
+    environment:
+      - DATABASE_URL=postgresql://fishing_user:fishing_pass@db:5432/lake_st_clair_fishing
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  server:
+    build: .
+    command: npm run server:dev
+    ports:
+      - "3011:3011"
+    environment:
+      - DATABASE_URL=postgresql://fishing_user:fishing_pass@db:5432/lake_st_clair_fishing
+      - NODE_ENV=development
+      - PORT=3011
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=fishing_user
+      - POSTGRES_PASSWORD=fishing_pass
+      - POSTGRES_DB=lake_st_clair_fishing
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

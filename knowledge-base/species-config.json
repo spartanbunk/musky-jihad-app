@@ -1,0 +1,204 @@
+{
+  "lake": "Lake St. Clair",
+  "location": {
+    "center": { "lat": 42.4583, "lng": -82.7167 },
+    "bounds": {
+      "north": 42.6,
+      "south": 42.3,
+      "east": -82.5,
+      "west": -82.9
+    }
+  },
+  "species": {
+    "musky": {
+      "scientific_name": "Esox masquinongy",
+      "common_names": ["Muskie", "Muskellunge"],
+      "icon": "🐟",
+      "color": "#059669",
+      "size_ranges": {
+        "legal_minimum": 40,
+        "average": 42,
+        "trophy": 50
+      },
+      "seasonal_availability": ["spring", "summer", "fall"],
+      "prime_months": [5, 6, 7, 8, 9, 10],
+      "difficulty": "expert",
+      "popularity": "high"
+    },
+    "walleye": {
+      "scientific_name": "Sander vitreus",
+      "common_names": ["Walleye", "Yellow Pike"],
+      "icon": "🐠",
+      "color": "#d97706",
+      "size_ranges": {
+        "legal_minimum": 15,
+        "average": 18,
+        "trophy": 28
+      },
+      "seasonal_availability": ["spring", "summer", "fall", "winter"],
+      "prime_months": [4, 5, 6, 9, 10],
+      "difficulty": "intermediate",
+      "popularity": "very_high"
+    },
+    "bass": {
+      "scientific_name": "Micropterus spp.",
+      "common_names": ["Smallmouth Bass", "Largemouth Bass"],
+      "icon": "🎣",
+      "color": "#7c3aed",
+      "size_ranges": {
+        "legal_minimum": 14,
+        "average": 16,
+        "trophy": 20
+      },
+      "seasonal_availability": ["spring", "summer", "fall"],
+      "prime_months": [5, 6, 7, 8, 9],
+      "difficulty": "intermediate",
+      "popularity": "high"
+    },
+    "pike": {
+      "scientific_name": "Esox lucius",
+      "common_names": ["Northern Pike", "Great Northern Pike"],
+      "icon": "🐡",
+      "color": "#dc2626",
+      "size_ranges": {
+        "legal_minimum": 24,
+        "average": 26,
+        "trophy": 36
+      },
+      "seasonal_availability": ["spring", "summer", "fall", "winter"],
+      "prime_months": [4, 5, 6, 10, 11],
+      "difficulty": "beginner_to_intermediate",
+      "popularity": "moderate"
+    },
+    "perch": {
+      "scientific_name": "Perca flavescens",
+      "common_names": ["Yellow Perch"],
+      "icon": "🐟",
+      "color": "#eab308",
+      "size_ranges": {
+        "legal_minimum": 7,
+        "average": 9,
+        "trophy": 13
+      },
+      "seasonal_availability": ["spring", "summer", "fall", "winter"],
+      "prime_months": [4, 5, 9, 10, 11],
+      "difficulty": "beginner",
+      "popularity": "high"
+    },
+    "salmon": {
+      "scientific_name": "Oncorhynchus spp.",
+      "common_names": ["Chinook Salmon", "Coho Salmon"],
+      "icon": "🍣",
+      "color": "#ec4899",
+      "size_ranges": {
+        "legal_minimum": 10,
+        "average": 15,
+        "trophy": 25
+      },
+      "seasonal_availability": ["spring", "summer", "fall"],
+      "prime_months": [4, 5, 6, 8, 9],
+      "difficulty": "advanced",
+      "popularity": "moderate"
+    },
+    "trout": {
+      "scientific_name": "Salvelinus namaycush",
+      "common_names": ["Lake Trout", "Laker"],
+      "icon": "🐟",
+      "color": "#06b6d4",
+      "size_ranges": {
+        "legal_minimum": 15,
+        "average": 20,
+        "trophy": 30
+      },
+      "seasonal_availability": ["spring", "summer", "fall", "winter"],
+      "prime_months": [4, 5, 6, 10, 11],
+      "difficulty": "advanced",
+      "popularity": "low_to_moderate"
+    }
+  },
+  "lake_characteristics": {
+    "max_depth": 27,
+    "average_depth": 11,
+    "surface_area": 430,
+    "water_type": "mesotrophic",
+    "primary_structures": [
+      "Canadian Shipping Channel",
+      "Anchor Bay",
+      "Muscamoot Bay",
+      "St. Clair River Delta"
+    ],
+    "dominant_vegetation": [
+      "Eurasian Watermilfoil",
+      "Cabbage",
+      "Coontail",
+      "Wild Celery"
+    ],
+    "invasive_species": [
+      "Round Goby",
+      "Zebra Mussel",
+      "Quagga Mussel"
+    ]
+  },
+  "fishing_regulations": {
+    "license_required": true,
+    "seasons": {
+      "bass": {
+        "open": "Third Saturday in June",
+        "close": "April 30"
+      },
+      "walleye": {
+        "open": "Year-round",
+        "limits": "Daily limit 5, possession limit 10"
+      },
+      "musky": {
+        "open": "June 15 - December 15",
+        "minimum_size": 40
+      }
+    }
+  },
+  "best_fishing_conditions": {
+    "wind": {
+      "ideal": "5-15 mph",
+      "direction": "Variable, SW often good"
+    },
+    "barometric_pressure": {
+      "rising": "Good",
+      "stable_high": "Good",
+      "falling": "Excellent",
+      "low_stable": "Poor"
+    },
+    "moon_phases": {
+      "new": "Excellent",
+      "first_quarter": "Good",
+      "full": "Excellent",
+      "last_quarter": "Fair"
+    },
+    "time_of_day": {
+      "dawn": "Excellent",
+      "morning": "Good",
+      "midday": "Fair",
+      "evening": "Excellent",
+      "night": "Species dependent"
+    }
+  },
+  "recommended_tackle": {
+    "musky": {
+      "rod": "8-9' Heavy to Extra Heavy",
+      "reel": "Large baitcaster or spinning",
+      "line": "50-80lb braid",
+      "leader": "Steel or heavy fluorocarbon"
+    },
+    "walleye": {
+      "rod": "6-7' Medium Light to Medium",
+      "reel": "Spinning or baitcaster",
+      "line": "10-15lb monofilament or fluorocarbon",
+      "leader": "Optional, light fluorocarbon"
+    },
+    "bass": {
+      "rod": "6.5-7' Medium to Medium Heavy",
+      "reel": "Baitcaster or spinning",
+      "line": "12-20lb fluorocarbon or braid",
+      "leader": "Fluorocarbon"
+    }
+  }
+}
