@@ -10,23 +10,37 @@ import CatchEditModal from './CatchEditModal'
 
 export default function FishingDashboard({ user }) {
   const [selectedSpecies, setSelectedSpecies] = useState('musky')
+  const [mapFilterSpecies, setMapFilterSpecies] = useState('all') // New state for map/catches filtering
   const [currentConditions, setCurrentConditions] = useState(null)
   const [aiRecommendations, setAiRecommendations] = useState(null)
   const [userCatches, setUserCatches] = useState([])
   const [dailyReport, setDailyReport] = useState(null)
   const [editingCatch, setEditingCatch] = useState(null)
+  const [mapInstance, setMapInstance] = useState(null)
+  
+  // Debug state changes
+  console.log('🏠 Dashboard component rendering with userCatches:', userCatches?.length, 'catches')
 
   useEffect(() => {
     // Load current conditions on dashboard mount
-    fetchCurrentConditions()
+    console.log('🚀 Dashboard mounting, fetching data...')
+    // fetchCurrentConditions() // Temporarily disabled to save Perplexity tokens
     fetchUserCatches()
-    fetchDailyReport() // Re-enabled with database-backed caching
+    // fetchDailyReport() // Temporarily disabled to save Perplexity tokens
   }, [])
 
   useEffect(() => {
     // Update AI recommendations when species changes or daily report is loaded
-    fetchAIRecommendations()
+    // fetchAIRecommendations() // Temporarily disabled to save Perplexity tokens
   }, [selectedSpecies, dailyReport])
+  
+  useEffect(() => {
+    // Debug userCatches state changes
+    console.log('🔄 userCatches state changed:', userCatches?.length, 'catches')
+    if (userCatches?.length > 0) {
+      console.log('📋 Sample catch:', userCatches[0])
+    }
+  }, [userCatches])
 
   const fetchCurrentConditions = async () => {
     try {
@@ -78,22 +92,28 @@ export default function FishingDashboard({ user }) {
 
   const fetchUserCatches = async () => {
     try {
-      const response = await fetch('http://localhost:3011/api/catches', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
+      console.log('🚀 Starting fetchUserCatches...')
+      const response = await fetch(`http://localhost:3011/api/catches?_t=${Date.now()}`)
+      
+      console.log('📡 Fetch response status:', response.status, response.statusText)
       
       if (response.ok) {
         const catches = await response.json()
+        console.log('🔄 fetchUserCatches received from API:', catches)
+        console.log('🔍 First catch species:', catches[0]?.species)
+        console.log('🆔 First catch ID:', catches[0]?.id)
+        console.log('📸 First catch photo:', catches[0]?.photoUrl)
+        
+        console.log('📝 About to call setUserCatches with:', catches)
         setUserCatches(catches)
+        console.log('✅ setUserCatches called')
       } else {
-        console.error('Failed to fetch catches from API')
+        console.error('❌ Failed to fetch catches from API, status:', response.status)
         // Keep empty array if API fails
         setUserCatches([])
       }
     } catch (error) {
-      console.error('Error fetching catches:', error)
+      console.error('💥 Error fetching catches:', error)
       setUserCatches([])
     }
   }
@@ -301,8 +321,18 @@ export default function FishingDashboard({ user }) {
   }
 
   const handleCatchLogged = (newCatch) => {
-    setUserCatches(prev => [newCatch, ...prev])
-    fetchAIRecommendations() // Refresh recommendations with new data
+    console.log('📍 handleCatchLogged called with:', newCatch)
+    setUserCatches(prev => {
+      const updated = [newCatch, ...prev]
+      console.log('📍 Updated userCatches:', updated)
+      return updated
+    })
+    // fetchAIRecommendations() // Refresh recommendations with new data - disabled to save tokens
+    
+    // Clear the temporary marker from the map
+    if (mapInstance && mapInstance.clearTempMarker) {
+      mapInstance.clearTempMarker()
+    }
   }
   
   const handleCatchUpdate = async (updatedCatch) => {
@@ -313,7 +343,8 @@ export default function FishingDashboard({ user }) {
         depth: updatedCatch.depth,
         lureType: updatedCatch.lureType,
         locationNotes: updatedCatch.locationNotes,
-        photoUrl: updatedCatch.photoUrl
+        photoUrl: updatedCatch.photoUrl,
+        catchTime: updatedCatch.catchTime
       }
       
       const response = await fetch(`http://localhost:3011/api/catches/${updatedCatch.id}`, {
@@ -365,6 +396,41 @@ export default function FishingDashboard({ user }) {
       alert('Error deleting catch')
     }
   }
+
+  const handleLocationClick = (latitude, longitude) => {
+    if (mapInstance && mapInstance.centerOnLocation) {
+      console.log('Navigating to location:', { latitude, longitude })
+      
+      // Scroll to map section first for immediate feedback
+      const mapElement = document.querySelector('[data-map-container]')
+      if (mapElement) {
+        mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      
+      // Small delay to let scroll animation start, then center map
+      setTimeout(() => {
+        mapInstance.centerOnLocation(latitude, longitude, 16)
+      }, 200)
+    } else {
+      console.warn('Map instance not ready yet')
+    }
+  }
+
+  const handleMapReady = (mapControls) => {
+    setMapInstance(mapControls)
+    console.log('Map ready with controls:', mapControls)
+  }
+
+  // Helper function to filter catches based on mapFilterSpecies
+  const getFilteredCatches = () => {
+    if (mapFilterSpecies === 'all') {
+      return userCatches
+    }
+    return userCatches.filter(fishCatch => fishCatch.species === mapFilterSpecies)
+  }
+
+  // All available species from CatchLogger
+  const allSpecies = ['musky', 'walleye', 'bass', 'pike', 'perch', 'bluegill', 'salmon', 'trout']
 
   return (
     <div>
@@ -468,13 +534,48 @@ export default function FishingDashboard({ user }) {
 
       {/* Map and Catch Logger */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginTop: '20px' }}>
-        <div className="card">
-          <h3 style={{ color: '#1e3a8a', marginBottom: '15px' }}>
-            Lake St. Clair - {selectedSpecies.charAt(0).toUpperCase() + selectedSpecies.slice(1)} Locations
-          </h3>
+        <div className="card" data-map-container>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ color: '#1e3a8a', margin: 0 }}>
+              Lake St. Clair - {mapFilterSpecies === 'all' ? 'All Species' : mapFilterSpecies.charAt(0).toUpperCase() + mapFilterSpecies.slice(1)} Locations
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Show:</span>
+              <select 
+                value={mapFilterSpecies}
+                onChange={(e) => setMapFilterSpecies(e.target.value)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: '2px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#1e3a8a',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  minWidth: '130px'
+                }}
+              >
+                <option value="all">🌊 All Species</option>
+                <option value="musky">🐟 Musky</option>
+                <option value="walleye">🐠 Walleye</option>
+                <option value="bass">🎣 Bass</option>
+                <option value="pike">🐡 Pike</option>
+                <option value="perch">🐟 Perch</option>
+                <option value="bluegill">🐟 Bluegill</option>
+                <option value="salmon">🍣 Salmon</option>
+                <option value="trout">🐟 Trout</option>
+              </select>
+            </div>
+          </div>
           <FishingMap 
-            catches={userCatches.filter(fishCatch => fishCatch.species === selectedSpecies)}
-            selectedSpecies={selectedSpecies}
+            catches={(() => {
+              const filtered = getFilteredCatches()
+              console.log('🗺️ Filtered catches for map:', filtered?.length, 'of', userCatches?.length, 'total', `(filter: ${mapFilterSpecies})`)
+              return filtered
+            })()}
+            selectedSpecies={mapFilterSpecies}
+            onMapReady={handleMapReady}
           />
         </div>
         
@@ -488,30 +589,36 @@ export default function FishingDashboard({ user }) {
 
       {/* Recent Catches with Enhanced CRUD Operations */}
       <div className="card" style={{ marginTop: '20px' }}>
-        <h3 style={{ color: '#1e3a8a', marginBottom: '15px' }}>Recent Catches</h3>
-        {userCatches.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
-            {userCatches.slice(0, 8).map(fishCatch => (
-              <div key={fishCatch.id} style={{ 
-                background: '#f8fafc', 
-                padding: '20px', 
-                borderRadius: '12px',
-                border: '2px solid #e2e8f0',
-                position: 'relative',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer'
-              }}
-              onClick={() => setEditingCatch(fishCatch)}
-              onMouseEnter={(e) => {
-                e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
-                e.target.style.borderColor = '#0284c7'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)'
-                e.target.style.borderColor = '#e2e8f0'
-              }}
-              >
+        <h3 style={{ color: '#1e3a8a', marginBottom: '15px' }}>
+          Recent Catches {mapFilterSpecies === 'all' ? '' : `- ${mapFilterSpecies.charAt(0).toUpperCase() + mapFilterSpecies.slice(1)}`}
+        </h3>
+        {(() => {
+          const filteredCatches = getFilteredCatches()
+          return filteredCatches.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
+              {filteredCatches.slice(0, 8).map(fishCatch => (
+                <div 
+                  key={fishCatch.id} 
+                  style={{ 
+                    background: '#f8fafc', 
+                    padding: '20px', 
+                    borderRadius: '12px',
+                    border: '2px solid #e2e8f0',
+                    position: 'relative',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setEditingCatch(fishCatch)}
+                  onMouseEnter={(e) => {
+                    e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
+                    e.target.style.borderColor = '#0284c7'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)'
+                    e.target.style.borderColor = '#e2e8f0'
+                  }}
+                >
                 {/* Quick action indicator */}
                 <div style={{ 
                   position: 'absolute', 
@@ -545,9 +652,14 @@ export default function FishingDashboard({ user }) {
                   <span style={{ fontWeight: 'bold', textTransform: 'capitalize', fontSize: '1.1rem', color: '#1e3a8a' }}>
                     🐟 {fishCatch.species}
                   </span>
-                  <span style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                    {new Date(fishCatch.catchTime).toLocaleDateString()}
-                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                      {new Date(fishCatch.catchTime).toLocaleDateString()}
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                      {new Date(fishCatch.catchTime).toLocaleTimeString()}
+                    </div>
+                  </div>
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
@@ -567,6 +679,47 @@ export default function FishingDashboard({ user }) {
                   </div>
                 )}
                 
+                {/* Location Link */}
+                {fishCatch.latitude && fishCatch.longitude && (
+                  <div 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '10px',
+                      padding: '8px 12px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontSize: '0.85rem'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation() // Prevent opening edit modal
+                      handleLocationClick(fishCatch.latitude, fishCatch.longitude)
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#e0f2fe'
+                      e.target.style.borderColor = '#0284c7'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#f8fafc'
+                      e.target.style.borderColor = '#e2e8f0'
+                    }}
+                  >
+                    <span style={{ fontSize: '1rem', color: '#0284c7' }}>📍</span>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#0369a1' }}>
+                        View on Map
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                        {fishCatch.latitude.toFixed(4)}, {fishCatch.longitude.toFixed(4)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Compact conditions display */}
                 <div style={{ 
                   color: '#64748b', 
@@ -604,19 +757,27 @@ export default function FishingDashboard({ user }) {
                     <div style={{ color: '#94a3b8' }}>No environmental data recorded</div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎣</div>
-            <h4 style={{ color: '#374151', marginBottom: '10px' }}>No catches logged yet!</h4>
-            <p>Start logging your catches to build your fishing intelligence database.</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>
-              💡 Click anywhere on the map to quickly log a catch at that location
-            </p>
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎣</div>
+              <h4 style={{ color: '#374151', marginBottom: '10px' }}>
+                {mapFilterSpecies === 'all' ? 'No catches logged yet!' : `No ${mapFilterSpecies} catches found!`}
+              </h4>
+              <p>
+                {mapFilterSpecies === 'all' 
+                  ? 'Start logging your catches to build your fishing intelligence database.'
+                  : `Try selecting "All Species" to see other catches, or log a ${mapFilterSpecies} catch.`
+                }
+              </p>
+              <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>
+                💡 Use the GPS button in the catch logger to set your location
+              </p>
+            </div>
+          )
+        })()}
       </div>
       
       {/* Edit Modal */}

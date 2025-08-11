@@ -16,7 +16,7 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
   })
 
   const species = [
-    'musky', 'walleye', 'bass', 'pike', 'perch', 'salmon', 'trout'
+    'musky', 'walleye', 'bass', 'pike', 'perch', 'bluegill', 'salmon', 'trout'
   ]
 
   const lureTypes = [
@@ -72,8 +72,13 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!formData.length || !formData.weight || !formData.latitude || !formData.longitude) {
-      alert('Please fill in all required fields')
+    if (!formData.length || !formData.weight) {
+      alert('Please fill in length and weight')
+      return
+    }
+    
+    if (!formData.latitude || !formData.longitude) {
+      alert('Please click on the map to set the catch location, or use the GPS button')
       return
     }
     
@@ -161,8 +166,7 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       const response = await fetch('http://localhost:3011/api/catches', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming JWT auth
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           species: formData.species,
@@ -186,12 +190,70 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
         
         // Update the catchData with the real database ID and photo URL
         catchData.id = result.id
-        catchData.catchTime = result.catchTime
+        // Keep the original catchTime we set (don't overwrite with database time)
         catchData.photoUrl = photoUrl
         
+        // Add species configuration for map markers
+        const speciesColors = {
+          musky: '#22c55e',
+          walleye: '#f97316',
+          bass: '#f97316',
+          pike: '#dc2626',
+          perch: '#eab308',
+          bluegill: '#3b82f6',
+          salmon: '#ec4899',
+          trout: '#06b6d4'
+        }
+        
+        const speciesEmojis = {
+          musky: '🐟',
+          walleye: '🐠',
+          bass: '🎣',
+          pike: '🐡',
+          perch: '🐟',
+          bluegill: '🐟',
+          salmon: '🍣',
+          trout: '🐟'
+        }
+        
+        catchData.speciesConfig = {
+          emoji: speciesEmojis[formData.species] || '🐟',
+          color: speciesColors[formData.species] || '#22c55e'
+        }
+        
+        console.log('🎣 Calling onCatchLogged with catchData:', catchData)
         onCatchLogged(catchData)
       } else {
         console.error('Failed to save catch to database')
+        
+        // Add species configuration for map markers even for failed saves
+        const speciesColors = {
+          musky: '#22c55e',
+          walleye: '#f97316',
+          bass: '#f97316',
+          pike: '#dc2626',
+          perch: '#eab308',
+          bluegill: '#3b82f6',
+          salmon: '#ec4899',
+          trout: '#06b6d4'
+        }
+        
+        const speciesEmojis = {
+          musky: '🐟',
+          walleye: '🐠',
+          bass: '🎣',
+          pike: '🐡',
+          perch: '🐟',
+          bluegill: '🐟',
+          salmon: '🍣',
+          trout: '🐟'
+        }
+        
+        catchData.speciesConfig = {
+          emoji: speciesEmojis[formData.species] || '🐟',
+          color: speciesColors[formData.species] || '#22c55e'
+        }
+        
         // Still call onCatchLogged for local display, but with temp ID
         onCatchLogged(catchData)
         alert('Catch logged locally, but could not save to database. Please check your connection.')
@@ -331,7 +393,15 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
         {/* Location */}
         <div style={{ marginBottom: '15px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#374151' }}>
-            Location *
+            Location * 
+            <span style={{ 
+              fontSize: '0.8rem', 
+              color: formData.latitude && formData.longitude ? '#059669' : '#dc2626',
+              fontWeight: 'normal',
+              marginLeft: '8px'
+            }}>
+              {formData.latitude && formData.longitude ? '✓ Location Set' : '⚠ Use GPS (map temporarily disabled)'}
+            </span>
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
             <input
@@ -343,9 +413,10 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
               step="any"
               style={{
                 padding: '10px',
-                border: '1px solid #d1d5db',
+                border: `2px solid ${formData.latitude ? '#059669' : '#d1d5db'}`,
                 borderRadius: '6px',
-                fontSize: '16px'
+                fontSize: '16px',
+                backgroundColor: formData.latitude ? '#f0fdf4' : 'white'
               }}
               required
             />
@@ -358,9 +429,10 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
               step="any"
               style={{
                 padding: '10px',
-                border: '1px solid #d1d5db',
+                border: `2px solid ${formData.longitude ? '#059669' : '#d1d5db'}`,
                 borderRadius: '6px',
-                fontSize: '16px'
+                fontSize: '16px',
+                backgroundColor: formData.longitude ? '#f0fdf4' : 'white'
               }}
               required
             />

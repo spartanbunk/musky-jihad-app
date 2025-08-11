@@ -5,9 +5,10 @@ import FishingDashboard from '../components/FishingDashboard'
 import AuthModal from '../components/AuthModal'
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Temporarily default to authenticated for development
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState({ email: 'dev@fishing.com' })
 
   const handleLogin = (userData) => {
     setUser(userData)

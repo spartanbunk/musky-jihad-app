@@ -52,6 +52,7 @@ app.use('/api/reports', fishingReportsRoutes)
 app.use('/api/images', imageProxyRoutes)
 app.use('/api/uploads', uploadsRoutes)
 
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err)

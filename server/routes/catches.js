@@ -120,10 +120,15 @@ router.post('/', async (req, res) => {
       photoUrl
     } = req.body
 
+    // Debug logging
+    console.log('Catch POST request body:', JSON.stringify(req.body, null, 2))
+    
     // Validate required fields
     if (!species || !length || !weight || !latitude || !longitude) {
+      console.log('Validation failed:', { species, length, weight, latitude, longitude })
       return res.status(400).json({ 
-        error: 'Required fields: species, length, weight, latitude, longitude' 
+        error: 'Required fields: species, length, weight, latitude, longitude',
+        received: { species, length, weight, latitude, longitude }
       })
     }
 
@@ -222,7 +227,8 @@ router.put('/:catchId', async (req, res) => {
       lureType,
       locationNotes,
       speciesSpecificAttributes,
-      photoUrl
+      photoUrl,
+      catchTime
     } = req.body
 
     // Verify catch belongs to user
@@ -245,8 +251,9 @@ router.put('/:catchId', async (req, res) => {
        location_notes = COALESCE($5, location_notes),
        species_specific_attributes = COALESCE($6, species_specific_attributes),
        photo_url = COALESCE($7, photo_url),
+       catch_time = COALESCE($8, catch_time),
        updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8`,
+       WHERE id = $9`,
       [
         length,
         weight,
@@ -255,6 +262,7 @@ router.put('/:catchId', async (req, res) => {
         locationNotes,
         speciesSpecificAttributes ? JSON.stringify(speciesSpecificAttributes) : null,
         photoUrl,
+        catchTime,
         catchId
       ]
     )

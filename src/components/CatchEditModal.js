@@ -11,11 +11,12 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
     lureType: '',
     photo: null,
     photoPreview: null,
-    locationNotes: ''
+    locationNotes: '',
+    catchTime: ''
   })
 
   const species = [
-    'musky', 'walleye', 'bass', 'pike', 'perch', 'salmon', 'trout'
+    'musky', 'walleye', 'bass', 'pike', 'perch', 'bluegill', 'salmon', 'trout'
   ]
 
   const lureTypes = [
@@ -25,6 +26,18 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
 
   useEffect(() => {
     if (catchData) {
+      // Format catch time for datetime-local input
+      const formatForDateTimeLocal = (dateString) => {
+        const date = new Date(dateString)
+        // Return in format: YYYY-MM-DDTHH:MM (without seconds)
+        const year = date.getFullYear()
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const day = date.getDate().toString().padStart(2, '0')
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        return `${year}-${month}-${day}T${hours}:${minutes}`
+      }
+
       setFormData({
         species: catchData.species || '',
         length: catchData.length?.toString() || '',
@@ -33,7 +46,8 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
         lureType: catchData.lureType || '',
         photo: null,
         photoPreview: catchData.photoUrl || null,
-        locationNotes: catchData.locationNotes || ''
+        locationNotes: catchData.locationNotes || '',
+        catchTime: catchData.catchTime ? formatForDateTimeLocal(catchData.catchTime) : ''
       })
     }
   }, [catchData])
@@ -93,7 +107,8 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
       depth: formData.depth ? parseFloat(formData.depth) : null,
       lureType: formData.lureType,
       locationNotes: formData.locationNotes,
-      photoUrl: photoUrl
+      photoUrl: photoUrl,
+      catchTime: formData.catchTime ? new Date(formData.catchTime).toISOString() : catchData.catchTime
     }
 
     onSave(updatedCatch)
@@ -195,17 +210,22 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
               
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#374151' }}>
-                  Caught On
+                  Caught On *
                 </label>
-                <div style={{
-                  padding: '10px',
-                  backgroundColor: '#f8fafc',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '8px',
-                  color: '#64748b'
-                }}>
-                  {formatDate(catchData.catchTime)}
-                </div>
+                <input
+                  type="datetime-local"
+                  name="catchTime"
+                  value={formData.catchTime}
+                  onChange={handleInputChange}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                  required
+                />
               </div>
             </div>
 
