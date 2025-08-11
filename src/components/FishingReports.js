@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+
 export default function FishingReports({ dailyReport }) {
+  const [isExpanded, setIsExpanded] = useState(false)
   // Handle loading state
   if (!dailyReport) {
     return (
@@ -89,16 +92,37 @@ export default function FishingReports({ dailyReport }) {
   return (
     <div className="card" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <h3 style={{ color: '#1e3a8a', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          📊 Daily Fishing Report
-          <span style={{ 
-            fontSize: '0.8rem',
-            color: getCacheStatusColor(dailyReport.cacheStatus),
-            fontWeight: 'bold'
-          }}>
-            {getCacheStatusText(dailyReport.cacheStatus)}
-          </span>
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ color: '#1e3a8a', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            📊 Daily Fishing Report
+            <span style={{ 
+              fontSize: '0.8rem',
+              color: getCacheStatusColor(dailyReport.cacheStatus),
+              fontWeight: 'bold'
+            }}>
+              {getCacheStatusText(dailyReport.cacheStatus)}
+            </span>
+          </h3>
+          
+          {/* Expand/Collapse Button */}
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: 'none',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            {isExpanded ? '▲ Collapse' : '▼ Expand'}
+          </button>
+        </div>
         
         <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b' }}>
           <div>{dailyReport.title}</div>
@@ -110,23 +134,52 @@ export default function FishingReports({ dailyReport }) {
         </div>
       </div>
       
-      {/* Daily Report Content */}
-      <div style={{
-        background: 'white',
-        padding: '20px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ 
-          fontSize: '0.95rem',
-          lineHeight: '1.7',
-          color: '#374151',
-          whiteSpace: 'pre-line'
+      {/* Preview when collapsed */}
+      {!isExpanded && (
+        <div style={{
+          background: 'white',
+          padding: '15px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }}>
-          {dailyReport.content}
+          <div style={{ 
+            fontSize: '0.9rem',
+            lineHeight: '1.6',
+            color: '#64748b',
+            fontStyle: 'italic'
+          }}>
+            {dailyReport.content.substring(0, 200)}...
+          </div>
+          <div style={{ 
+            marginTop: '10px',
+            fontSize: '0.8rem',
+            color: '#94a3b8'
+          }}>
+            Click "Expand" to view the full report
+          </div>
         </div>
-      </div>
+      )}
+      
+      {/* Full Daily Report Content */}
+      {isExpanded && (
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ 
+            fontSize: '0.95rem',
+            lineHeight: '1.7',
+            color: '#374151',
+            whiteSpace: 'pre-line'
+          }}>
+            {dailyReport.content}
+          </div>
+        </div>
+      )}
       
       {/* Report Footer */}
       <div style={{ 

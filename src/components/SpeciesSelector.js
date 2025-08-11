@@ -3,12 +3,11 @@
 export default function SpeciesSelector({ selectedSpecies, onSpeciesChange }) {
   const species = [
     { id: 'musky', name: 'Musky', emoji: '🐟', color: '#059669' },
+    { id: 'bass', name: 'Smallmouth Bass', emoji: '🎣', color: '#7c3aed' },
     { id: 'walleye', name: 'Walleye', emoji: '🐠', color: '#d97706' },
-    { id: 'bass', name: 'Bass', emoji: '🎣', color: '#7c3aed' },
-    { id: 'pike', name: 'Northern Pike', emoji: '🐡', color: '#dc2626' },
     { id: 'perch', name: 'Yellow Perch', emoji: '🐟', color: '#eab308' },
-    { id: 'salmon', name: 'Salmon', emoji: '🍣', color: '#ec4899' },
-    { id: 'trout', name: 'Trout', emoji: '🐟', color: '#06b6d4' }
+    { id: 'crappie', name: 'Crappie', emoji: '🐠', color: '#8b5cf6' },
+    { id: 'bluegill', name: 'Bluegill', emoji: '🐟', color: '#10b981' }
   ]
 
   return (

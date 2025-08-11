@@ -18,9 +18,13 @@ export default function FishingDashboard({ user }) {
     // Load current conditions on dashboard mount
     fetchCurrentConditions()
     fetchUserCatches()
-    fetchAIRecommendations()
     fetchDailyReport() // Re-enabled with database-backed caching
-  }, [selectedSpecies])
+  }, [])
+
+  useEffect(() => {
+    // Update AI recommendations when species changes or daily report is loaded
+    fetchAIRecommendations()
+  }, [selectedSpecies, dailyReport])
 
   const fetchCurrentConditions = async () => {
     try {
@@ -90,6 +94,84 @@ export default function FishingDashboard({ user }) {
     }
   }
 
+  // Parse species-specific content from daily fishing report
+  const parseSpeciesFromReport = (reportContent, targetSpecies) => {
+    if (!reportContent || !targetSpecies) return null
+    
+    // Enhanced species name mappings for parsing (only species in daily report)
+    const speciesAliases = {
+      musky: ['musky', 'muskellunge', 'esox masquinongy', 'muskies'],
+      bass: ['smallmouth bass', 'bass', 'largemouth bass', 'micropterus', 'smallmouth', 'largemouth'],
+      walleye: ['walleye', 'sander vitreus', 'walleyed pike', 'walleyes'],
+      perch: ['yellow perch', 'perch', 'perca flavescens'],
+      crappie: ['crappie', 'crappies', 'black crappie', 'white crappie'],
+      bluegill: ['bluegill/sunfish', 'bluegill', 'bluegills', 'sunfish', 'panfish']
+    }
+    
+    const aliases = speciesAliases[targetSpecies.toLowerCase()] || [targetSpecies.toLowerCase()]
+    
+    // Line-by-line parsing approach for better accuracy
+    const lines = reportContent.split('\n')
+    
+    for (const alias of aliases) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        
+        // Look for "- Species name" at start of line
+        const speciesHeaderRegex = new RegExp(`^-\\s*${alias}\\s*$`, 'i')
+        if (speciesHeaderRegex.test(line)) {
+          console.log(`✅ Found ${alias} section at line ${i}`)
+          
+          // Collect all indented content until next species or section
+          const speciesContent = []
+          let j = i + 1
+          
+          while (j < lines.length) {
+            const currentLine = lines[j]
+            
+            // Stop if we hit another species (starts with "- " and capital letter)
+            if (currentLine.match(/^-\s*[A-Z]/i) && !currentLine.match(new RegExp(`^-\\s*${alias}`, 'i'))) {
+              break
+            }
+            
+            // Stop if we hit "Current conditions"
+            if (currentLine.match(/^Current\s+conditions/i)) {
+              break
+            }
+            
+            // Add the line to species content
+            speciesContent.push(currentLine)
+            j++
+          }
+          
+          const content = speciesContent.join('\n').trim()
+          
+          if (content.length > 50) {
+            console.log(`✅ Extracted ${content.length} chars for ${alias}`)
+            console.log(`Content preview:`, content.substring(0, 200) + '...')
+            return content
+          }
+        }
+      }
+    }
+    
+    console.log(`❌ No structured content found for ${targetSpecies}`)
+    return null
+  }
+
+  // Get display name for species (matching SpeciesSelector names)
+  const getSpeciesDisplayName = (species) => {
+    const displayNames = {
+      musky: 'Musky',
+      bass: 'Smallmouth Bass',
+      walleye: 'Walleye', 
+      perch: 'Yellow Perch',
+      crappie: 'Crappie',
+      bluegill: 'Bluegill'
+    }
+    return displayNames[species.toLowerCase()] || species.charAt(0).toUpperCase() + species.slice(1)
+  }
+
   const fetchAIRecommendations = async () => {
     try {
       // Fetch real solunar data for best fishing times
@@ -124,20 +206,41 @@ export default function FishingDashboard({ user }) {
         console.log('Solunar data fetch failed, using defaults:', solunarError.message)
       }
       
-      // Mock AI recommendations based on species with real solunar integration
-      const recommendations = {
-        musky: 'Current conditions favor musky activity. Southwest winds are pushing baitfish toward the north shore weedlines. Focus on 8-12 foot edges with large baits during peak solunar periods.',
-        walleye: 'Excellent walleye conditions with dropping pressure. Target 15-20 foot depths along the Canadian shipping channel during major feeding periods.',
-        bass: 'Good bass fishing with moderate winds. Focus on shallow rocky areas and drop-offs in 6-10 feet of water during solunar peak times.'
+      // Extract species-specific recommendation from daily report
+      let recommendationText = 'Loading recommendations...'
+      
+      if (dailyReport && dailyReport.content && !dailyReport.error) {
+        const speciesContent = parseSpeciesFromReport(dailyReport.content, selectedSpecies)
+        if (speciesContent) {
+          recommendationText = speciesContent
+        } else {
+          // Fallback if species not found in report
+          const fallbackRecommendations = {
+            musky: 'Focus on weed edges and structure in 8-15 feet of water. Large baits work best during active feeding periods.',
+            bass: 'Work rocky areas and structure in shallow to moderate depths. Vary presentation based on water clarity.',
+            walleye: 'Target deeper water near channels and drop-offs. Crawler harnesses and jigs are most effective.',
+            perch: 'Schools move frequently - stay mobile and work mid-lake structure when located.',
+            crappie: 'Target protected bays and canals with live minnows. Focus on 5-7 feet around docks and structure.',
+            bluegill: 'Work shallow protected areas with live bait. Worms and small jigs are most effective near vegetation.'
+          }
+          recommendationText = fallbackRecommendations[selectedSpecies] || 'Check current conditions and local reports for best fishing opportunities.'
+        }
       }
       
       setAiRecommendations({
-        text: recommendations[selectedSpecies] || 'Loading recommendations...',
+        text: recommendationText,
         confidence: solunarConfidence,
-        bestTimes: bestTimes
+        bestTimes: bestTimes,
+        speciesName: getSpeciesDisplayName(selectedSpecies)
       })
     } catch (error) {
       console.error('Error fetching AI recommendations:', error)
+      setAiRecommendations({
+        text: 'Unable to load recommendations. Please check back later.',
+        confidence: 50,
+        bestTimes: ['6:00 AM - 9:00 AM', '6:30 PM - 8:00 PM'],
+        speciesName: getSpeciesDisplayName(selectedSpecies)
+      })
     }
   }
 
@@ -251,8 +354,11 @@ export default function FishingDashboard({ user }) {
               }}
             >
               <option value="musky">🐟 Musky</option>
-              <option value="walleye">🎣 Walleye</option>
-              <option value="bass">🎯 Bass</option>
+              <option value="bass">🎣 Smallmouth Bass</option>
+              <option value="walleye">🐠 Walleye</option>
+              <option value="perch">🐟 Yellow Perch</option>
+              <option value="crappie">🐠 Crappie</option>
+              <option value="bluegill">🐟 Bluegill</option>
             </select>
           </div>
         </div>
@@ -264,12 +370,20 @@ export default function FishingDashboard({ user }) {
         {aiRecommendations && (
           <div className="card" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1px solid #0284c7' }}>
             <h3 style={{ color: '#0369a1', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              🤖 AI Fishing Recommendations for {selectedSpecies.charAt(0).toUpperCase() + selectedSpecies.slice(1)}
+              🤖 AI Fishing Recommendations for {aiRecommendations.speciesName || selectedSpecies.charAt(0).toUpperCase() + selectedSpecies.slice(1)}
               <span style={{ fontSize: '0.8rem', background: '#0284c7', color: 'white', padding: '2px 8px', borderRadius: '12px' }}>
                 {aiRecommendations.confidence}% confidence
               </span>
             </h3>
-            <p style={{ marginBottom: '15px', lineHeight: '1.6' }}>{aiRecommendations.text}</p>
+            <div style={{ 
+              marginBottom: '15px', 
+              lineHeight: '1.6', 
+              whiteSpace: 'pre-line',
+              maxWidth: 'none',
+              wordWrap: 'break-word'
+            }}>
+              {aiRecommendations.text}
+            </div>
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <div>
                 <strong>Best Times Today:</strong>
