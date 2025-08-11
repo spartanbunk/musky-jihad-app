@@ -21,18 +21,45 @@ export default function FishingDashboard({ user }) {
 
   const fetchCurrentConditions = async () => {
     try {
-      // Mock data for development - replace with actual API calls
+      // Fetch real weather data from our backend API
+      const response = await fetch('http://localhost:3011/api/weather/current-validated')
+      if (!response.ok) {
+        throw new Error('Failed to fetch weather data')
+      }
+      
+      const weatherData = await response.json()
+      console.log('Weather data received:', weatherData)
+      
+      // Update conditions with real data
       setCurrentConditions({
-        windSpeed: 12,
-        windDirection: 'SW',
-        temperature: 68,
-        waterTemp: 72,
-        pressure: 30.15,
-        cloudCover: 25,
-        moonPhase: 'Waxing Gibbous'
+        windSpeed: weatherData.conditions.windSpeed,
+        windDirection: weatherData.conditions.windDirection,
+        temperature: weatherData.conditions.temperature,
+        waterTemp: weatherData.conditions.waterTemp,
+        pressure: parseFloat(weatherData.conditions.pressure),
+        cloudCover: weatherData.conditions.cloudCover,
+        humidity: weatherData.conditions.humidity,
+        moonPhase: weatherData.conditions.moonPhase,
+        astronomy: weatherData.conditions.astronomy,
+        waveHeight: weatherData.conditions.waveHeight,
+        source: weatherData.source,
+        dataQuality: weatherData.dataQuality
       })
     } catch (error) {
       console.error('Error fetching conditions:', error)
+      // Fallback to mock data if API fails
+      setCurrentConditions({
+        windSpeed: 8,
+        windDirection: 'SW',
+        temperature: 68,
+        waterTemp: 70,
+        pressure: 30.00,
+        cloudCover: 30,
+        humidity: 65,
+        moonPhase: { name: 'Unknown', illumination: 50, optimal: false },
+        astronomy: { sunrise: 'N/A', sunset: 'N/A', moonrise: 'N/A', moonset: 'N/A' },
+        source: 'offline'
+      })
     }
   }
 
@@ -58,17 +85,49 @@ export default function FishingDashboard({ user }) {
 
   const fetchAIRecommendations = async () => {
     try {
-      // Mock AI recommendations based on species
+      // Fetch real solunar data for best fishing times
+      let bestTimes = ['6:00 AM - 9:00 AM', '6:30 PM - 8:00 PM'] // Default fallback
+      let solunarConfidence = 70
+      
+      try {
+        const solunarResponse = await fetch('http://localhost:3011/api/weather/solunar-multi')
+        if (solunarResponse.ok) {
+          const solunarData = await solunarResponse.json()
+          console.log('Multi-source solunar data received:', solunarData)
+          
+          if (solunarData.fishingForecast && solunarData.fishingForecast.bestTimes) {
+            bestTimes = solunarData.fishingForecast.bestTimes.map(period => {
+              // Convert 24hr format to 12hr format for display
+              const formatTime = (time24) => {
+                if (!time24) return time24
+                const [hours, minutes] = time24.split(':').map(Number)
+                const period = hours >= 12 ? 'PM' : 'AM'
+                const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+                return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+              }
+              
+              return `${formatTime(period.start)} - ${formatTime(period.end)} (${period.type})`
+            })
+            
+            solunarConfidence = solunarData.solunar.reliability === 'high' ? 95 : 
+                               solunarData.solunar.reliability === 'medium' ? 85 : 75
+          }
+        }
+      } catch (solunarError) {
+        console.log('Solunar data fetch failed, using defaults:', solunarError.message)
+      }
+      
+      // Mock AI recommendations based on species with real solunar integration
       const recommendations = {
-        musky: 'Current conditions favor musky activity. Southwest winds are pushing baitfish toward the north shore weedlines. Focus on 8-12 foot edges with large baits.',
-        walleye: 'Excellent walleye conditions with dropping pressure. Target 15-20 foot depths along the Canadian shipping channel.',
-        bass: 'Good bass fishing with moderate winds. Focus on shallow rocky areas and drop-offs in 6-10 feet of water.'
+        musky: 'Current conditions favor musky activity. Southwest winds are pushing baitfish toward the north shore weedlines. Focus on 8-12 foot edges with large baits during peak solunar periods.',
+        walleye: 'Excellent walleye conditions with dropping pressure. Target 15-20 foot depths along the Canadian shipping channel during major feeding periods.',
+        bass: 'Good bass fishing with moderate winds. Focus on shallow rocky areas and drop-offs in 6-10 feet of water during solunar peak times.'
       }
       
       setAiRecommendations({
         text: recommendations[selectedSpecies] || 'Loading recommendations...',
-        confidence: 85,
-        bestTimes: ['6:00 AM - 9:00 AM', '6:30 PM - 8:00 PM']
+        confidence: solunarConfidence,
+        bestTimes: bestTimes
       })
     } catch (error) {
       console.error('Error fetching AI recommendations:', error)

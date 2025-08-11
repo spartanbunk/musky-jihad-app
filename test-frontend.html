@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Data Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .weather-item { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🌊 Lake St. Clair Weather Data Test</h1>
+    <button onclick="testWeatherData()">🔄 Test Weather API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testWeatherData() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Testing weather API...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3011/api/weather/current-validated');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                const conditions = data.conditions;
+                
+                resultsDiv.innerHTML = `
+                    <div class="success"><h2>✅ Weather API Working!</h2></div>
+                    
+                    <div class="weather-item">🌡️ <strong>Temperature:</strong> ${conditions.temperature}°F</div>
+                    <div class="weather-item">🌬️ <strong>Wind:</strong> ${conditions.windSpeed} mph ${conditions.windDirection}</div>
+                    <div class="weather-item">💧 <strong>Humidity:</strong> ${conditions.humidity}%</div>
+                    <div class="weather-item">📊 <strong>Pressure:</strong> ${conditions.pressure}"</div>
+                    <div class="weather-item">🌙 <strong>Moon:</strong> ${conditions.moonPhase.name} ${conditions.moonPhase.illumination}%</div>
+                    
+                    ${conditions.astronomy ? `
+                        <div class="weather-item">🌅 <strong>Sunrise:</strong> ${formatTime(conditions.astronomy.sunrise)}</div>
+                        <div class="weather-item">🌅 <strong>Sunset:</strong> ${formatTime(conditions.astronomy.sunset)}</div>
+                        <div class="weather-item">🌙 <strong>Moonrise:</strong> ${formatTime(conditions.astronomy.moonrise)}</div>
+                        <div class="weather-item">🌙 <strong>Moonset:</strong> ${formatTime(conditions.astronomy.moonset)}</div>
+                    ` : '<div class="error">❌ No astronomy data</div>'}
+                    
+                    <div class="weather-item">🔍 <strong>Data Sources:</strong> ${data.sources.map(s => s.name).join(', ')}</div>
+                    <div class="weather-item">📡 <strong>Source:</strong> ${data.source}</div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error"><h2>❌ Error: ${error.message}</h2></div>`;
+            }
+        }
+        
+        function formatTime(time24) {
+            if (!time24 || time24 === 'N/A') return 'N/A';
+            
+            try {
+                const [hours, minutes] = time24.split(':').map(Number);
+                const period = hours >= 12 ? 'PM' : 'AM';
+                const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                
+                return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+            } catch (error) {
+                return time24;
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = () => testWeatherData();
+    </script>
+</body>
+</html>

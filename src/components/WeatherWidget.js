@@ -26,18 +26,49 @@ export default function WeatherWidget({ conditions }) {
     return { status: 'Stable', color: '#d97706', icon: '➖' }
   }
 
-  const getMoonPhaseEmoji = (phase) => {
-    const phases = {
-      'New Moon': '🌑',
-      'Waxing Crescent': '🌒',
-      'First Quarter': '🌓',
-      'Waxing Gibbous': '🌔',
-      'Full Moon': '🌕',
-      'Waning Gibbous': '🌖',
-      'Last Quarter': '🌗',
-      'Waning Crescent': '🌘'
+  const formatTime = (time24) => {
+    if (!time24 || time24 === 'N/A') return 'N/A'
+    
+    try {
+      const [hours, minutes] = time24.split(':').map(Number)
+      const period = hours >= 12 ? 'PM' : 'AM'
+      const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+      
+      return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+    } catch (error) {
+      return time24
     }
-    return phases[phase] || '🌙'
+  }
+
+  const getMoonPhaseEmoji = (moonData) => {
+    if (typeof moonData === 'string') {
+      // Handle old string format
+      const phases = {
+        'New Moon': '🌑',
+        'Waxing Crescent': '🌒', 
+        'First Quarter': '🌓',
+        'Waxing Gibbous': '🌔',
+        'Full Moon': '🌕',
+        'Waning Gibbous': '🌖',
+        'Last Quarter': '🌗',
+        'Waning Crescent': '🌘'
+      }
+      return phases[moonData] || '🌙'
+    } else if (moonData && moonData.name) {
+      // Handle new object format with detailed moon data
+      const phases = {
+        'New Moon': '🌑',
+        'Waxing Crescent': '🌒',
+        'First Quarter': '🌓', 
+        'Waxing Gibbous': '🌔',
+        'Full Moon': '🌕',
+        'Waning Gibbous': '🌖',
+        'Last Quarter': '🌗',
+        'Waning Crescent': '🌘'
+      }
+      return phases[moonData.name] || '🌙'
+    }
+    return '🌙'
   }
 
   const pressureInfo = getPressureStatus(conditions.pressure)
@@ -46,7 +77,12 @@ export default function WeatherWidget({ conditions }) {
     <div className="card" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
       <h3 style={{ color: '#1e3a8a', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         🌊 Current Lake St. Clair Conditions
-        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Live Data</span>
+        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+          {conditions.source === 'noaa-buoy' ? '🔴 NOAA Live' : 
+           conditions.source === 'combined-openweather-noaa' ? '🟢 Combined Data' :
+           conditions.source === 'openweather' ? '🟡 Weather API' : 
+           '⚫ Offline'}
+        </span>
       </h3>
       
       <div style={{ 
@@ -93,16 +129,61 @@ export default function WeatherWidget({ conditions }) {
           <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Clouds</div>
         </div>
 
+        {/* Humidity */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '5px' }}>💧</div>
+          <div style={{ fontWeight: 'bold', color: '#1e3a8a' }}>{conditions.humidity}%</div>
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Humidity</div>
+        </div>
+
+        {/* Wave Height (if available) */}
+        {conditions.waveHeight && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🌊</div>
+            <div style={{ fontWeight: 'bold', color: '#1e3a8a' }}>{conditions.waveHeight} ft</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Wave Height</div>
+          </div>
+        )}
+
         {/* Moon Phase */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', marginBottom: '5px' }}>
             {getMoonPhaseEmoji(conditions.moonPhase)}
           </div>
           <div style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '0.85rem' }}>
-            {conditions.moonPhase}
+            {typeof conditions.moonPhase === 'string' ? conditions.moonPhase : conditions.moonPhase?.name || 'Unknown'}
           </div>
-          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Moon Phase</div>
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            {conditions.moonPhase?.optimal ? '🎣 Optimal' : 'Moon Phase'}
+            {conditions.moonPhase?.illumination !== undefined && 
+              ` (${conditions.moonPhase.illumination}%)`
+            }
+          </div>
         </div>
+
+        {/* Sunrise/Sunset */}
+        {conditions.astronomy && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🌅</div>
+            <div style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '0.8rem' }}>
+              <div>Rise: {formatTime(conditions.astronomy.sunrise)}</div>
+              <div>Set: {formatTime(conditions.astronomy.sunset)}</div>
+            </div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Sunrise/Sunset</div>
+          </div>
+        )}
+
+        {/* Moonrise/Moonset */}
+        {conditions.astronomy && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🌙</div>
+            <div style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '0.8rem' }}>
+              <div>Rise: {formatTime(conditions.astronomy.moonrise)}</div>
+              <div>Set: {formatTime(conditions.astronomy.moonset)}</div>
+            </div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Moonrise/Moonset</div>
+          </div>
+        )}
       </div>
 
       {/* Fishing Condition Summary */}
@@ -129,6 +210,37 @@ export default function WeatherWidget({ conditions }) {
            conditions.windSpeed < 20 && conditions.pressure > 29.7 ? 'GOOD' : 'FAIR'}
         </div>
       </div>
+
+      {/* Data Quality Info */}
+      {conditions.dataQuality && (
+        <div style={{ 
+          marginTop: '15px', 
+          padding: '10px', 
+          background: 'rgba(59, 130, 246, 0.05)', 
+          borderRadius: '6px',
+          fontSize: '0.8rem',
+          color: '#64748b'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Data Sources:</div>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            <span>{conditions.dataQuality.realBuoyData ? '✅ NOAA Buoy' : '❌ NOAA Buoy'}</span>
+            <span>{conditions.dataQuality.realWeatherData ? '✅ Perplexity API' : '❌ Weather API'}</span>
+            <span>{conditions.moonPhase?.source === 'USNO' ? '✅ USNO Astronomy' : 
+                   conditions.moonPhase?.source === 'validated' ? '✅ Validated Data' : 
+                   '❌ Moon Data'}</span>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+            <div><strong>Weather:</strong> Perplexity API (temp, wind, humidity)</div>
+            <div><strong>Astronomy:</strong> U.S. Naval Observatory (moon phase, sun/moon times)</div>
+            <div><strong>Pressure:</strong> Estimated from weather data</div>
+          </div>
+          {conditions.dataQuality.lastUpdated && (
+            <div style={{ marginTop: '5px' }}>
+              Updated: {new Date(conditions.dataQuality.lastUpdated).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

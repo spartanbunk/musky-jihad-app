@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solunar Fishing Times Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .solunar-item { margin: 10px 0; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0284c7; }
+        .time-major { background: #dcfce7; border-left-color: #16a34a; }
+        .time-minor { background: #fef3c7; border-left-color: #d97706; }
+        .error { color: red; background: #fee; }
+        .success { color: green; }
+        .rating { display: inline-block; padding: 4px 8px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; }
+        .rating-excellent { background: #16a34a; }
+        .rating-good { background: #d97706; }
+        .rating-fair { background: #dc2626; }
+        .moon-info { background: #1e1b4b; color: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>🌙 Lake St. Clair Solunar Fishing Times</h1>
+    <button onclick="testSolunarData()">🔄 Get Best Fishing Times</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testSolunarData() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Fetching solunar fishing times...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3011/api/weather/solunar');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                const solunar = data.solunar;
+                const forecast = data.fishingForecast;
+                
+                // Format time from 24hr to 12hr
+                const formatTime = (time24) => {
+                    if (!time24) return 'N/A';
+                    try {
+                        const [hours, minutes] = time24.split(':').map(Number);
+                        const period = hours >= 12 ? 'PM' : 'AM';
+                        const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                        return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+                    } catch (error) {
+                        return time24;
+                    }
+                };
+
+                const getRatingClass = (rating) => {
+                    if (rating >= 4) return 'rating-excellent';
+                    if (rating >= 3) return 'rating-good';
+                    return 'rating-fair';
+                };
+
+                const getMoonEmoji = (phase) => {
+                    const phases = {
+                        'New Moon': '🌑',
+                        'Waxing Crescent': '🌒', 
+                        'First Quarter': '🌓',
+                        'Waxing Gibbous': '🌔',
+                        'Full Moon': '🌕',
+                        'Waning Gibbous': '🌖',
+                        'Last Quarter': '🌗',
+                        'Waning Crescent': '🌘'
+                    };
+                    return phases[phase] || '🌙';
+                };
+                
+                resultsDiv.innerHTML = `
+                    <div class="success"><h2>✅ Solunar Data Retrieved Successfully!</h2></div>
+                    
+                    <div class="moon-info">
+                        <h3>${getMoonEmoji(solunar.moonPhase)} Moon Phase: ${solunar.moonPhase}</h3>
+                        <p><strong>🌟 Illumination:</strong> ${solunar.moonIllumination}%</p>
+                        <p><strong>📅 Date:</strong> ${data.date}</p>
+                        <p><strong>⭐ Day Rating:</strong> <span class="rating ${solunar.dayRating >= 2 ? 'rating-excellent' : solunar.dayRating >= 1 ? 'rating-good' : 'rating-fair'}">${forecast.rating.toUpperCase()}</span></p>
+                    </div>
+                    
+                    <h3>🎣 Best Fishing Times Today</h3>
+                    ${forecast.bestTimes.map(time => `
+                        <div class="solunar-item ${time.type === 'Major' ? 'time-major' : 'time-minor'}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${time.type} Period:</strong> ${formatTime(time.start)} - ${formatTime(time.end)}
+                                    <div style="font-size: 0.9rem; color: #64748b; margin-top: 5px;">
+                                        Quality: ${time.quality} • Duration: ${time.type === 'Major' ? '2 hours' : '1 hour'}
+                                    </div>
+                                </div>
+                                <span class="rating ${getRatingClass(time.rating)}">${time.rating}/5</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                    
+                    <div class="solunar-item">
+                        <h4>🌅 Sun & Moon Times</h4>
+                        <p><strong>🌅 Sunrise:</strong> ${formatTime(solunar.sunTimes.sunrise)}</p>
+                        <p><strong>🌇 Sunset:</strong> ${formatTime(solunar.sunTimes.sunset)}</p>
+                        <p><strong>🌙 Moonrise:</strong> ${formatTime(solunar.moonTimes.moonrise)}</p>
+                        <p><strong>🌑 Moonset:</strong> ${formatTime(solunar.moonTimes.moonset)}</p>
+                    </div>
+                    
+                    <div class="solunar-item" style="background: #f3f4f6;">
+                        <h4>📊 Data Quality</h4>
+                        <p><strong>🔍 Primary Source:</strong> ${solunar.source}</p>
+                        <p><strong>📡 Sources Used:</strong> ${solunar.sourcesUsed}</p>
+                        <p><strong>✅ Validation Level:</strong> ${solunar.validationLevel}</p>
+                        <p><strong>🔗 Available Sources:</strong> ${solunar.sources ? solunar.sources.map(s => s.name).join(', ') : 'N/A'}</p>
+                    </div>
+                    
+                    <div class="solunar-item">
+                        <h4>💡 Pro Tips</h4>
+                        <ul>
+                            <li><strong>Major Periods:</strong> Fish are most active during 2-hour major feeding periods</li>
+                            <li><strong>Minor Periods:</strong> Good activity during 1-hour minor periods</li>
+                            <li><strong>Best Times:</strong> When solunar periods overlap with sunrise/sunset</li>
+                            <li><strong>Moon Phase:</strong> New and Full moons typically produce the best fishing</li>
+                        </ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error"><h2>❌ Error: ${error.message}</h2></div>`;
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = () => testSolunarData();
+    </script>
+</body>
+</html>
