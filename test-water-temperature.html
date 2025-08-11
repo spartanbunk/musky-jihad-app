@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lake St. Clair Water Temperature Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .temp-card { margin: 15px 0; padding: 20px; border-radius: 10px; border-left: 4px solid #0284c7; }
+        .water-temp { background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border-left-color: #00838f; }
+        .location-temp { background: #f8fafc; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .warmest { border-left: 4px solid #dc2626; }
+        .coldest { border-left: 4px solid #0284c7; }
+        .error { color: red; background: #fee; padding: 10px; border-radius: 5px; }
+        .success { color: green; }
+        .temp-range { background: linear-gradient(90deg, #0284c7 0%, #dc2626 100%); height: 20px; border-radius: 10px; margin: 10px 0; }
+        .temp-indicator { position: relative; height: 20px; }
+        .temp-value { display: inline-block; padding: 4px 8px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; margin: 2px; }
+        .temp-warm { background: #dc2626; }
+        .temp-cool { background: #0284c7; }
+        .temp-mild { background: #059669; }
+    </style>
+</head>
+<body>
+    <h1>🌊 Lake St. Clair Water Temperature Analysis</h1>
+    
+    <div>
+        <button onclick="testWaterTemperature()">🌡️ Get Water Temperature Data</button>
+        <button onclick="testCombinedData()">🎣 Get Complete Fishing Data</button>
+        <button onclick="compareApis()">🔄 Compare APIs</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testWaterTemperature() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Fetching Lake St. Clair water temperatures...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3011/api/weather/water-temperature');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="success"><h2>✅ Water Temperature Data Retrieved!</h2></div>
+                    
+                    <div class="temp-card water-temp">
+                        <h3>🌊 Lake St. Clair Water Temperature Overview</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #dc2626;">🔥</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc2626;">
+                                    ${data.waterTemperatures.warmest.temperature}°F
+                                </div>
+                                <div>Warmest at <strong>${data.waterTemperatures.warmest.name}</strong></div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #059669;">📊</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #059669;">
+                                    ${Math.round(data.waterTemperatures.average)}°F
+                                </div>
+                                <div>Lake Average</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: #0284c7;">❄️</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #0284c7;">
+                                    ${data.waterTemperatures.coldest.temperature}°F
+                                </div>
+                                <div>Coldest at <strong>${data.waterTemperatures.coldest.name}</strong></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <strong>Temperature Range:</strong> ${Math.round(data.waterTemperatures.temperatureRange)}°F difference
+                        </div>
+                        <div class="temp-range"></div>
+                    </div>
+
+                    <div class="temp-card">
+                        <h3>📍 All Monitoring Locations</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">
+                            ${data.waterTemperatures.locations.map((location, index) => {
+                                const isWarmest = location.temperature === data.waterTemperatures.warmest.temperature;
+                                const isColdest = location.temperature === data.waterTemperatures.coldest.temperature;
+                                const tempClass = location.temperature >= 77 ? 'temp-warm' : 
+                                                 location.temperature <= 70 ? 'temp-cool' : 'temp-mild';
+                                
+                                return `
+                                    <div class="location-temp ${isWarmest ? 'warmest' : isColdest ? 'coldest' : ''}">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <strong>${location.name}</strong>
+                                            <span class="temp-value ${tempClass}">${location.temperature}°F</span>
+                                        </div>
+                                        ${isWarmest ? '<div style="color: #dc2626; font-size: 0.8rem;">🔥 Warmest spot</div>' : ''}
+                                        ${isColdest ? '<div style="color: #0284c7; font-size: 0.8rem;">❄️ Coolest spot</div>' : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="temp-card" style="background: #f0fdf4; border-left-color: #16a34a;">
+                        <h3>🎣 Fishing Recommendations</h3>
+                        ${data.fishingRecommendations.map(rec => `
+                            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">
+                                ${rec.species ? `<strong>Species:</strong> ${rec.species.charAt(0).toUpperCase() + rec.species.slice(1)} - ` : ''}
+                                ${rec.location ? `<strong>Location:</strong> ${rec.location} - ` : ''}
+                                <strong>Recommendation:</strong> ${rec.recommendation}
+                                ${rec.reason ? `<br><em>${rec.reason}</em>` : ''}
+                                ${rec.temperature ? `<br><strong>Temperature:</strong> ${rec.temperature}°F` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="temp-card" style="background: #f8fafc; border-left-color: #64748b;">
+                        <h3>📊 Data Information</h3>
+                        <p><strong>Data Source:</strong> ${data.dataSource}</p>
+                        <p><strong>Total Monitoring Points:</strong> ${data.waterTemperatures.totalLocations}</p>
+                        <p><strong>Last Updated:</strong> ${new Date(data.lastUpdated).toLocaleString()}</p>
+                        <p><strong>Scraping Status:</strong> ${data.success ? '✅ Live Data' : '⚠️ Using Fallback Data'}</p>
+                        ${data.isFallbackData ? '<p style="color: orange;">⚠️ This data is from fallback sources</p>' : ''}
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error"><h2>❌ Error: ${error.message}</h2></div>`;
+            }
+        }
+
+        async function testCombinedData() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Fetching complete fishing conditions...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3011/api/weather/current-with-water-temp');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="success"><h2>✅ Complete Fishing Data Retrieved!</h2></div>
+                    
+                    <div class="temp-card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                        <h3>🎣 Current Fishing Conditions</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                            <div style="text-align: center;">
+                                <div>🌡️ <strong>Air Temp</strong></div>
+                                <div style="font-size: 1.2rem; color: #1e3a8a;">${data.conditions.temperature}°F</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div>🌊 <strong>Water Temp</strong></div>
+                                <div style="font-size: 1.2rem; color: #0284c7;">${Math.round(data.waterTemperature.average)}°F</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div>🌬️ <strong>Wind</strong></div>
+                                <div style="font-size: 1.2rem; color: #059669;">${data.conditions.windSpeed} mph ${data.conditions.windDirection}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div>📊 <strong>Pressure</strong></div>
+                                <div style="font-size: 1.2rem; color: #d97706;">${data.conditions.pressure}"</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="temp-card water-temp">
+                        <h3>🌊 Water Temperature Hotspots</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div style="text-align: center; padding: 15px; background: rgba(220, 38, 38, 0.1); border-radius: 8px;">
+                                <div style="font-size: 2rem;">🔥</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc2626;">${data.waterTemperature.warmest.temperature}°F</div>
+                                <div><strong>${data.waterTemperature.warmest.name}</strong></div>
+                                <div style="font-size: 0.8rem; color: #64748b;">Best for warm-water species</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: rgba(2, 132, 199, 0.1); border-radius: 8px;">
+                                <div style="font-size: 2rem;">❄️</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #0284c7;">${data.waterTemperature.coldest.temperature}°F</div>
+                                <div><strong>${data.waterTemperature.coldest.name}</strong></div>
+                                <div style="font-size: 0.8rem; color: #64748b;">May have less activity</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="temp-card" style="background: #f0fdf4; border-left-color: #16a34a;">
+                        <h3>🎯 Data Sources</h3>
+                        <ul>
+                            <li><strong>Weather:</strong> ${data.dataSources.weather}</li>
+                            <li><strong>Water Temperature:</strong> ${data.dataSources.waterTemp} (${data.dataSources.waterTempStatus})</li>
+                            <li><strong>Total Water Temp Locations:</strong> ${data.waterTemperature.totalLocations}</li>
+                        </ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error"><h2>❌ Error: ${error.message}</h2></div>`;
+            }
+        }
+
+        async function compareApis() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Comparing API endpoints...</p>';
+            
+            try {
+                const [waterTempResponse, combinedResponse] = await Promise.all([
+                    fetch('http://localhost:3011/api/weather/water-temperature'),
+                    fetch('http://localhost:3011/api/weather/current-with-water-temp')
+                ]);
+                
+                const waterTempData = await waterTempResponse.json();
+                const combinedData = await combinedResponse.json();
+                
+                resultsDiv.innerHTML = `
+                    <div class="success"><h2>🔄 API Comparison Results</h2></div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="temp-card">
+                            <h3>🌊 Water Temperature API</h3>
+                            <p><strong>Endpoint:</strong> /api/weather/water-temperature</p>
+                            <p><strong>Warmest:</strong> ${waterTempData.waterTemperatures.warmest.name} (${waterTempData.waterTemperatures.warmest.temperature}°F)</p>
+                            <p><strong>Coldest:</strong> ${waterTempData.waterTemperatures.coldest.name} (${waterTempData.waterTemperatures.coldest.temperature}°F)</p>
+                            <p><strong>Average:</strong> ${Math.round(waterTempData.waterTemperatures.average)}°F</p>
+                            <p><strong>Locations:</strong> ${waterTempData.waterTemperatures.totalLocations}</p>
+                        </div>
+                        
+                        <div class="temp-card">
+                            <h3>🎣 Combined Data API</h3>
+                            <p><strong>Endpoint:</strong> /api/weather/current-with-water-temp</p>
+                            <p><strong>Warmest:</strong> ${combinedData.waterTemperature.warmest.name} (${combinedData.waterTemperature.warmest.temperature}°F)</p>
+                            <p><strong>Coldest:</strong> ${combinedData.waterTemperature.coldest.name} (${combinedData.waterTemperature.coldest.temperature}°F)</p>
+                            <p><strong>Average:</strong> ${Math.round(combinedData.waterTemperature.average)}°F</p>
+                            <p><strong>Plus:</strong> Weather data, solunar times, fishing recommendations</p>
+                        </div>
+                    </div>
+                    
+                    <div class="temp-card" style="background: #f0fdf4; border-left-color: #16a34a;">
+                        <h3>✅ Comparison Summary</h3>
+                        <p><strong>Data Consistency:</strong> ${
+                            waterTempData.waterTemperatures.warmest.temperature === combinedData.waterTemperature.warmest.temperature ? 
+                            '✅ Both APIs return identical water temperature data' : 
+                            '⚠️ Data differs between APIs'
+                        }</p>
+                        <p><strong>Recommendation:</strong> Use combined API for complete fishing intelligence</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error"><h2>❌ Error: ${error.message}</h2></div>`;
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = () => testWaterTemperature();
+    </script>
+</body>
+</html>

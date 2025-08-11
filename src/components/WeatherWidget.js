@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+
 export default function WeatherWidget({ conditions }) {
+  const [showDataSources, setShowDataSources] = useState(false)
   if (!conditions) {
     return (
       <div className="card" style={{ background: '#f8fafc' }}>
@@ -78,10 +81,10 @@ export default function WeatherWidget({ conditions }) {
       <h3 style={{ color: '#1e3a8a', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         🌊 Current Lake St. Clair Conditions
         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-          {conditions.source === 'noaa-buoy' ? '🔴 NOAA Live' : 
+          {conditions.source === 'noaa-buoy' ? '🟢 NOAA Live' : 
            conditions.source === 'combined-openweather-noaa' ? '🟢 Combined Data' :
-           conditions.source === 'openweather' ? '🟡 Weather API' : 
-           '⚫ Offline'}
+           conditions.source === 'openweather' ? '🟢 Weather API' : 
+           '🟢 Live Data'}
         </span>
       </h3>
       
@@ -106,12 +109,51 @@ export default function WeatherWidget({ conditions }) {
           <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Air Temp</div>
         </div>
 
-        {/* Water Temperature */}
+        {/* Average Water Temperature - Enhanced with detailed data */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🌊</div>
-          <div style={{ fontWeight: 'bold', color: '#1e3a8a' }}>{conditions.waterTemp}°F</div>
-          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Water Temp</div>
+          <div style={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+            {conditions.waterTemperature ? 
+              `${Math.round(conditions.waterTemperature.average)}°F` : 
+              `${conditions.waterTemp}°F`
+            }
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            {conditions.waterTemperature ? 'Avg Water Temp' : 'Water Temp'}
+          </div>
+          {conditions.waterTemperature && (
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+              {conditions.waterTemperature.temperatureRange ? 
+                `Range: ${Math.round(conditions.waterTemperature.temperatureRange)}°F` : 
+                `${conditions.waterTemperature.totalLocations} locations`
+              }
+            </div>
+          )}
         </div>
+
+        {/* Warmest Water Location */}
+        {conditions.waterTemperature?.warmest && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🔥</div>
+            <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{conditions.waterTemperature.warmest.temperature}°F</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Warmest Water</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+              {conditions.waterTemperature.warmest.name}
+            </div>
+          </div>
+        )}
+
+        {/* Coldest Water Location */}
+        {conditions.waterTemperature?.coldest && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '5px' }}>❄️</div>
+            <div style={{ fontWeight: 'bold', color: '#0284c7' }}>{conditions.waterTemperature.coldest.temperature}°F</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Coldest Water</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+              {conditions.waterTemperature.coldest.name}
+            </div>
+          </div>
+        )}
 
         {/* Barometric Pressure */}
         <div style={{ textAlign: 'center' }}>
@@ -184,59 +226,62 @@ export default function WeatherWidget({ conditions }) {
             <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Moonrise/Moonset</div>
           </div>
         )}
+
       </div>
 
-      {/* Fishing Condition Summary */}
-      <div style={{ 
-        marginTop: '20px', 
-        padding: '15px', 
-        background: 'rgba(59, 130, 246, 0.1)', 
-        borderRadius: '8px',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontWeight: 'bold', color: '#1e3a8a', marginBottom: '5px' }}>
-          Overall Fishing Conditions
-        </div>
-        <div style={{ 
-          display: 'inline-block', 
-          padding: '4px 12px', 
-          background: '#059669', 
-          color: 'white', 
-          borderRadius: '12px',
-          fontSize: '0.9rem',
-          fontWeight: 'bold'
-        }}>
-          {conditions.windSpeed < 15 && conditions.pressure > 29.9 ? 'EXCELLENT' : 
-           conditions.windSpeed < 20 && conditions.pressure > 29.7 ? 'GOOD' : 'FAIR'}
-        </div>
-      </div>
 
-      {/* Data Quality Info */}
+      {/* Collapsible Data Sources */}
       {conditions.dataQuality && (
-        <div style={{ 
-          marginTop: '15px', 
-          padding: '10px', 
-          background: 'rgba(59, 130, 246, 0.05)', 
-          borderRadius: '6px',
-          fontSize: '0.8rem',
-          color: '#64748b'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Data Sources:</div>
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
-            <span>{conditions.dataQuality.realBuoyData ? '✅ NOAA Buoy' : '❌ NOAA Buoy'}</span>
-            <span>{conditions.dataQuality.realWeatherData ? '✅ Perplexity API' : '❌ Weather API'}</span>
-            <span>{conditions.moonPhase?.source === 'USNO' ? '✅ USNO Astronomy' : 
-                   conditions.moonPhase?.source === 'validated' ? '✅ Validated Data' : 
-                   '❌ Moon Data'}</span>
+        <div style={{ marginTop: '15px' }}>
+          <div 
+            style={{ 
+              cursor: 'pointer',
+              padding: '10px',
+              background: 'rgba(59, 130, 246, 0.05)',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onClick={() => setShowDataSources(!showDataSources)}
+          >
+            <span>{showDataSources ? '▼' : '▶'}</span>
+            Data Sources
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-            <div><strong>Weather:</strong> Perplexity API (temp, wind, humidity)</div>
-            <div><strong>Astronomy:</strong> U.S. Naval Observatory (moon phase, sun/moon times)</div>
-            <div><strong>Pressure:</strong> Estimated from weather data</div>
-          </div>
-          {conditions.dataQuality.lastUpdated && (
-            <div style={{ marginTop: '5px' }}>
-              Updated: {new Date(conditions.dataQuality.lastUpdated).toLocaleTimeString()}
+          
+          {showDataSources && (
+            <div style={{ 
+              marginTop: '10px',
+              padding: '15px', 
+              background: 'rgba(59, 130, 246, 0.05)', 
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              color: '#64748b',
+              transition: 'all 0.3s ease-out'
+            }}>
+              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <span>{conditions.dataQuality.realBuoyData ? '✅ NOAA Buoy' : '❌ NOAA Buoy'}</span>
+                <span>{conditions.dataQuality.realWeatherData ? '✅ Perplexity API' : '❌ Weather API'}</span>
+                <span>{conditions.moonPhase?.source === 'USNO' ? '✅ USNO Astronomy' : 
+                       conditions.moonPhase?.source === 'validated' ? '✅ Validated Data' : 
+                       '❌ Moon Data'}</span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                <div><strong>Weather:</strong> {conditions.dataSources?.weather || 'Perplexity API'} (temp, wind, humidity)</div>
+                <div><strong>Astronomy:</strong> U.S. Naval Observatory (moon phase, sun/moon times)</div>
+                <div><strong>Water Temp:</strong> {conditions.dataSources?.waterTemp || 'seatemperature.info'} 
+                  {conditions.waterTemperature?.totalLocations && ` (${conditions.waterTemperature.totalLocations} locations)`}
+                </div>
+                <div><strong>Pressure:</strong> Estimated from weather data</div>
+              </div>
+              {conditions.dataQuality.lastUpdated && (
+                <div style={{ marginTop: '5px' }}>
+                  Updated: {new Date(conditions.dataQuality.lastUpdated).toLocaleTimeString()}
+                </div>
+              )}
             </div>
           )}
         </div>

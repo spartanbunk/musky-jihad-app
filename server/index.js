@@ -9,6 +9,9 @@ const catchesRoutes = require('./routes/catches')
 const weatherRoutes = require('./routes/weather')
 const aiRoutes = require('./routes/ai')
 const stripeRoutes = require('./routes/stripe')
+const fishingReportsRoutes = require('./routes/fishingReports')
+const imageProxyRoutes = require('./routes/imageProxy')
+const ReportScheduler = require('./services/reportScheduler')
 
 const app = express()
 const PORT = process.env.PORT || 3011
@@ -34,6 +37,8 @@ app.use('/api/catches', catchesRoutes)
 app.use('/api/weather', weatherRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/stripe', stripeRoutes)
+app.use('/api/reports', fishingReportsRoutes)
+app.use('/api/images', imageProxyRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -52,4 +57,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🎣 Lake St. Clair Fishing API server running on port ${PORT}`)
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)
+  
+  // Start the daily report scheduler
+  ReportScheduler.startScheduler()
 })

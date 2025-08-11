@@ -3,6 +3,8 @@ const axios = require('axios')
 const { query } = require('../database/connection')
 const { authenticateToken } = require('./auth')
 const FishingDataScraper = require('../scrapers/fishingDataScraper')
+const WaterTemperatureScraper = require('../scrapers/waterTemperatureScraper')
+const DailyReport = require('../models/DailyReport')
 
 const router = express.Router()
 
@@ -1051,5 +1053,356 @@ function aggregateWeatherSources(sources, astronomicalData) {
   
   return conditions
 }
+
+// Lake St. Clair Water Temperature endpoint
+router.get('/water-temperature', async (req, res) => {
+  try {
+    console.log('🌊 Fetching Lake St. Clair water temperatures...')
+    
+    const waterTempScraper = new WaterTemperatureScraper()
+    const scrapingResult = await waterTempScraper.getLakeStClairTemperatures()
+    
+    if (scrapingResult.success) {
+      const formattedData = waterTempScraper.formatForAPI(scrapingResult.data)
+      
+      res.json({
+        success: true,
+        location: 'Lake St. Clair',
+        coordinates: { latitude: LAKE_ST_CLAIR_LAT, longitude: LAKE_ST_CLAIR_LNG },
+        ...formattedData,
+        scrapedAt: scrapingResult.scrapedAt
+      })
+    } else {
+      // Return fallback data with error info
+      const formattedFallback = waterTempScraper.formatForAPI(scrapingResult.fallbackData)
+      
+      res.json({
+        success: false,
+        error: scrapingResult.error,
+        location: 'Lake St. Clair',
+        coordinates: { latitude: LAKE_ST_CLAIR_LAT, longitude: LAKE_ST_CLAIR_LNG },
+        ...formattedFallback,
+        scrapedAt: new Date().toISOString()
+      })
+    }
+    
+  } catch (error) {
+    console.error('Water temperature API error:', error)
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch water temperature data',
+      message: error.message
+    })
+  }
+})
+
+// Enhanced weather endpoint with water temperature data
+router.get('/current-with-water-temp', async (req, res) => {
+  try {
+    const { lat = LAKE_ST_CLAIR_LAT, lng = LAKE_ST_CLAIR_LNG } = req.query
+    
+    console.log('🌊 Fetching complete weather + water temperature data...')
+    
+    // Get regular weather data
+    const weatherResponse = await axios.get(`http://localhost:3011/api/weather/current-validated`)
+    const weatherData = weatherResponse.data
+    
+    // Get water temperature data
+    const waterTempScraper = new WaterTemperatureScraper()
+    const waterTempResult = await waterTempScraper.getLakeStClairTemperatures()
+    
+    let waterTempData = null
+    if (waterTempResult.success) {
+      waterTempData = waterTempScraper.formatForAPI(waterTempResult.data)
+    } else {
+      waterTempData = waterTempScraper.formatForAPI(waterTempResult.fallbackData)
+      waterTempData.error = waterTempResult.error
+    }
+    
+    // Combine the data
+    const combinedData = {
+      ...weatherData,
+      waterTemperature: waterTempData.waterTemperatures,
+      fishingRecommendations: [
+        ...(weatherData.fishingRecommendations || []),
+        ...(waterTempData.fishingRecommendations || [])
+      ],
+      dataSources: {
+        weather: weatherData.source || 'multi-source-validated',
+        waterTemp: waterTempData.dataSource,
+        waterTempStatus: waterTempResult.success ? 'live' : 'fallback'
+      }
+    }
+    
+    res.json(combinedData)
+    
+  } catch (error) {
+    console.error('Combined weather + water temp error:', error)
+    res.status(500).json({ error: 'Failed to fetch combined weather and water temperature data' })
+  }
+})
+
+// Get daily fishing report from database (24-hour caching to minimize token usage)
+router.get('/daily-fishing-report', async (req, res) => {
+  try {
+    console.log('📊 Fetching daily fishing report from database...')
+    
+    // Try to get today's report from database
+    const todaysReport = await DailyReport.getTodaysReport()
+    
+    if (todaysReport) {
+      console.log(`✅ Returning cached daily report (${todaysReport.cacheStatus})`)
+      return res.json({
+        success: true,
+        source: 'database-cached',
+        location: todaysReport.location || 'Lake St. Clair, MI',
+        title: todaysReport.title,
+        content: todaysReport.content,
+        generatedAt: todaysReport.generatedAt,
+        validUntil: todaysReport.validUntil,
+        cacheStatus: todaysReport.cacheStatus,
+        tokenCount: todaysReport.tokenCount,
+        generationDuration: todaysReport.generationDuration
+      })
+    }
+
+    console.log('📊 No cached report found - checking if Perplexity API is available...')
+    
+    if (!process.env.PERPLEXITY_API_KEY) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Perplexity API key not configured and no cached report available' 
+      })
+    }
+
+    console.log('🎣 Generating new daily fishing report via Perplexity API...')
+    const startTime = Date.now()
+    
+    const query = `What are the current fishing conditions on Lake St. Clair Michigan today? Include recent reports for bass, walleye, musky, perch, crappie, and bluegill. Mention specific locations, depths, techniques, and hot baits currently working.`
+
+    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
+      model: 'sonar-pro',
+      messages: [
+        {
+          role: "system",
+          content: "You are writing a daily fishing report for Lake St. Clair, Michigan. Search for the most current fishing information and create a comprehensive report covering all major fish species. Include specific locations, depths, techniques, and current conditions. Write as one flowing professional report."
+        },
+        {
+          role: "user", 
+          content: query
+        }
+      ],
+      max_tokens: 1200,
+      temperature: 0.2,
+      stream: false
+    }, {
+      timeout: 25000,
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const reportContent = response.data.choices[0].message.content
+    const generationTime = Date.now() - startTime
+    
+    // Estimate token count (rough approximation: 1 token ≈ 4 characters)
+    const estimatedTokens = Math.ceil((query + reportContent).length / 4)
+    
+    // Create title
+    const title = `Daily Fishing Report - ${new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })}`
+    
+    // Save to database for future requests
+    const savedReport = await DailyReport.createOrUpdateReport({
+      title: title,
+      content: reportContent,
+      cacheStatus: 'fresh',
+      tokenCount: estimatedTokens,
+      generationDuration: generationTime
+    })
+    
+    console.log(`✅ Daily fishing report generated and saved (${generationTime}ms, ~${estimatedTokens} tokens)`)
+    
+    res.json({
+      success: true,
+      source: 'perplexity-fresh',
+      location: 'Lake St. Clair, MI',
+      title: savedReport.title,
+      content: savedReport.content,
+      generatedAt: savedReport.generatedAt,
+      validUntil: savedReport.validUntil,
+      cacheStatus: savedReport.cacheStatus,
+      tokenCount: savedReport.tokenCount,
+      generationDuration: savedReport.generationDuration
+    })
+
+  } catch (error) {
+    console.error('❌ Error with daily fishing report:', error.message)
+    
+    // Try to return any existing report as fallback
+    try {
+      const fallbackReport = await DailyReport.getTodaysReport()
+      if (fallbackReport) {
+        console.log('📊 Returning existing report as error fallback')
+        return res.json({
+          success: true,
+          source: 'database-fallback',
+          location: fallbackReport.location || 'Lake St. Clair, MI',
+          title: fallbackReport.title,
+          content: fallbackReport.content,
+          generatedAt: fallbackReport.generatedAt,
+          validUntil: fallbackReport.validUntil,
+          cacheStatus: 'stale',
+          error: 'Fresh report generation failed, serving cached version'
+        })
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback retrieval also failed:', fallbackError.message)
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Failed to generate daily fishing report and no cached version available'
+    })
+  }
+})
+
+// Manual refresh endpoint for admin/testing purposes
+router.post('/daily-fishing-report/refresh', async (req, res) => {
+  try {
+    console.log('🔧 Manual daily fishing report refresh triggered')
+    
+    if (!process.env.PERPLEXITY_API_KEY) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Perplexity API key not configured' 
+      })
+    }
+
+    const startTime = Date.now()
+    
+    const query = `What are the current fishing conditions on Lake St. Clair Michigan today? Include recent reports for bass, walleye, musky, perch, crappie, and bluegill. Mention specific locations, depths, techniques, and hot baits currently working.`
+
+    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
+      model: 'sonar-pro',
+      messages: [
+        {
+          role: "system",
+          content: "You are writing a daily fishing report for Lake St. Clair, Michigan. Search for the most current fishing information and create a comprehensive report covering all major fish species. Include specific locations, depths, techniques, and current conditions. Write as one flowing professional report."
+        },
+        {
+          role: "user", 
+          content: query
+        }
+      ],
+      max_tokens: 1200,
+      temperature: 0.2,
+      stream: false
+    }, {
+      timeout: 25000,
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const reportContent = response.data.choices[0].message.content
+    const generationTime = Date.now() - startTime
+    
+    // Estimate token count
+    const estimatedTokens = Math.ceil((query + reportContent).length / 4)
+    
+    // Create title
+    const title = `Daily Fishing Report - ${new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })}`
+    
+    // Force update in database
+    const savedReport = await DailyReport.createOrUpdateReport({
+      title: title,
+      content: reportContent,
+      cacheStatus: 'fresh',
+      tokenCount: estimatedTokens,
+      generationDuration: generationTime
+    })
+    
+    console.log(`✅ Manual refresh completed (${generationTime}ms, ~${estimatedTokens} tokens)`)
+    
+    res.json({
+      success: true,
+      message: 'Daily fishing report manually refreshed',
+      source: 'manual-refresh',
+      location: 'Lake St. Clair, MI',
+      title: savedReport.title,
+      content: savedReport.content,
+      generatedAt: savedReport.generatedAt,
+      validUntil: savedReport.validUntil,
+      cacheStatus: savedReport.cacheStatus,
+      tokenCount: savedReport.tokenCount,
+      generationDuration: savedReport.generationDuration
+    })
+
+  } catch (error) {
+    console.error('❌ Manual refresh failed:', error.message)
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Manual refresh failed'
+    })
+  }
+})
+
+// Clear test data (development only)
+router.delete('/daily-fishing-report/clear', async (req, res) => {
+  try {
+    console.log('🧹 Clearing test data from daily reports...')
+    
+    const result = await query('DELETE FROM daily_fishing_reports WHERE report_date = CURRENT_DATE')
+    
+    console.log(`✅ Cleared ${result.rowCount} test reports`)
+    
+    res.json({
+      success: true,
+      message: `Cleared ${result.rowCount} reports from today`,
+      rowsDeleted: result.rowCount
+    })
+  } catch (error) {
+    console.error('❌ Error clearing test data:', error.message)
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    })
+  }
+})
+
+// Get daily report statistics
+router.get('/daily-fishing-report/stats', async (req, res) => {
+  try {
+    const stats = await DailyReport.getStats()
+    const schedulerStatus = require('../services/reportScheduler').getStatus()
+    
+    res.json({
+      success: true,
+      stats: stats,
+      scheduler: await schedulerStatus,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('❌ Error getting report stats:', error.message)
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    })
+  }
+})
 
 module.exports = router
