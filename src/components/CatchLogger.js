@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import LocationService from '../utils/locationService'
 
 export default function CatchLogger({ onCatchLogged, currentConditions }) {
   const [isLogging, setIsLogging] = useState(false)
@@ -37,27 +38,96 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       }
     }
 
+    // Listen for voice-activated mark fish command
+    const handleMarkFish = (event) => {
+      const { latitude, longitude, accuracy, source, error, requestLocation } = event.detail
+      console.log('🎣 CatchLogger: Voice command received - opening form:', { latitude, longitude, accuracy, source, error })
+      
+      // Always open the logging form when voice command is received
+      if (!isLogging) {
+        console.log('🎣 CatchLogger: Opening catch logging form from voice command')
+        setIsLogging(true)
+      }
+      
+      // If we have location coordinates, set them
+      if (latitude && longitude && latitude !== 0 && longitude !== 0) {
+        console.log('🎣 CatchLogger: Setting initial location coordinates')
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6)
+        }))
+      }
+    }
+
+    // Listen for location updates from voice commands
+    const handleMarkFishLocationUpdate = (event) => {
+      const { latitude, longitude, accuracy, source } = event.detail
+      console.log('🎣 CatchLogger: Location update received:', { latitude, longitude, accuracy, source })
+      
+      if (latitude && longitude) {
+        console.log('🎣 CatchLogger: Updating form with GPS location')
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6)
+        }))
+        
+        // Show accuracy feedback
+        if (accuracy) {
+          const accuracyMessage = accuracy < 10 ? 
+            `📍 High accuracy location captured (±${accuracy.toFixed(1)}m)` :
+            `📍 Location captured (±${accuracy.toFixed(0)}m accuracy)`
+          
+          console.log(accuracyMessage)
+          // Could show a toast notification here
+        }
+      }
+    }
+
+    // Listen for location errors from voice commands
+    const handleMarkFishError = (event) => {
+      const { error, showUserMessage, suggestion } = event.detail
+      console.error('🎣 Voice location error:', error)
+      
+      if (showUserMessage) {
+        alert(`Location access needed: ${error}\n\n${suggestion}`)
+      }
+    }
+
     window.addEventListener('mapClick', handleMapClick)
-    return () => window.removeEventListener('mapClick', handleMapClick)
+    window.addEventListener('markFish', handleMarkFish)
+    window.addEventListener('markFishLocationUpdate', handleMarkFishLocationUpdate)
+    window.addEventListener('markFishError', handleMarkFishError)
+    
+    return () => {
+      window.removeEventListener('mapClick', handleMapClick)
+      window.removeEventListener('markFish', handleMarkFish)
+      window.removeEventListener('markFishLocationUpdate', handleMarkFishLocationUpdate)
+      window.removeEventListener('markFishError', handleMarkFishError)
+    }
   }, [isLogging])
 
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            latitude: position.coords.latitude.toFixed(6),
-            longitude: position.coords.longitude.toFixed(6)
-          }))
-        },
-        (error) => {
-          console.error('Error getting location:', error)
-          alert('Unable to get current location. Please enter coordinates manually or click on the map.')
-        }
-      )
-    } else {
-      alert('Geolocation is not supported by this browser.')
+  const getCurrentLocation = async () => {
+    try {
+      const location = await LocationService.getCurrentLocationForFishing()
+      
+      setFormData(prev => ({
+        ...prev,
+        latitude: location.latitude.toFixed(6),
+        longitude: location.longitude.toFixed(6)
+      }))
+      
+      // Show accuracy feedback
+      const accuracyMessage = location.accuracy < 10 ? 
+        `📍 High accuracy location captured (±${location.accuracy.toFixed(1)}m)` :
+        `📍 Location captured (±${location.accuracy.toFixed(0)}m accuracy)`
+      
+      console.log(accuracyMessage)
+      
+    } catch (error) {
+      console.error('Enhanced location error:', error)
+      alert(error.message || 'Unable to get current location. Please enter coordinates manually or click on the map.')
     }
   }
 

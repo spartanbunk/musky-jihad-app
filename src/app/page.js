@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import FishingDashboard from '../components/FishingDashboard'
 import AuthModal from '../components/AuthModal'
+import { registerServiceWorker, setupInstallPrompt } from '../utils/registerSW'
 
 export default function Home() {
   // Temporarily default to authenticated for development
@@ -20,6 +21,12 @@ export default function Home() {
     setUser(null)
     setIsAuthenticated(false)
   }
+
+  // Initialize PWA features
+  useEffect(() => {
+    registerServiceWorker()
+    setupInstallPrompt()
+  }, [])
 
   return (
     <div>

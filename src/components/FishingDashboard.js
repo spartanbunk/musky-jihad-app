@@ -7,6 +7,7 @@ import CatchLogger from './CatchLogger'
 import SpeciesSelector from './SpeciesSelector'
 import FishingReports from './FishingReports'
 import CatchEditModal from './CatchEditModal'
+import VoiceActivation from './VoiceActivation'
 
 export default function FishingDashboard({ user }) {
   const [selectedSpecies, setSelectedSpecies] = useState('musky')
@@ -531,6 +532,9 @@ export default function FishingDashboard({ user }) {
         {/* Daily Fishing Report */}
         <FishingReports dailyReport={dailyReport} />
       </div>
+
+      {/* Voice Activation */}
+      <VoiceActivation />
 
       {/* Map and Catch Logger */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginTop: '20px' }}>

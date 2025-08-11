@@ -6,23 +6,33 @@ const router = express.Router()
 
 // Get all catches for authenticated user
 router.get('/', async (req, res) => {
+  console.log('🎣 GET /api/catches - Environment:', process.env.NODE_ENV);
+  console.log('🎣 Headers:', Object.keys(req.headers));
+  
   // Skip auth in development for testing
   let userId = null;
   if (req.user && req.user.userId) {
+    console.log('🎣 Using authenticated user:', req.user.userId);
     userId = req.user.userId;
   } else if (process.env.NODE_ENV === 'development') {
+    console.log('🎣 Development mode - looking for test user');
     // For development, use test user
     try {
       const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
+      console.log('🎣 Test user found:', testUser.rows.length > 0);
       if (testUser.rows.length > 0) {
         userId = testUser.rows[0].id;
+        console.log('🎣 Using test user ID:', userId);
       } else {
+        console.log('🎣 No test user found, returning 404');
         return res.status(404).json({ error: 'No test user found' });
       }
     } catch (error) {
-      return res.status(500).json({ error: 'Authentication required' });
+      console.error('🎣 Database error in development:', error);
+      return res.status(500).json({ error: 'Database error in development mode' });
     }
   } else {
+    console.log('🎣 Production mode - returning 401');
     return res.status(401).json({ error: 'Authentication required' });
   }
   try {
@@ -80,28 +90,38 @@ router.get('/', async (req, res) => {
 
 // Log a new catch
 router.post('/', async (req, res) => {
+  console.log('🎣 POST /api/catches - Environment:', process.env.NODE_ENV);
+  console.log('🎣 Request headers:', req.headers);
+  
   // Skip auth in development for testing
   let userId = null;
   if (req.user && req.user.userId) {
+    console.log('🎣 Using authenticated user:', req.user.userId);
     userId = req.user.userId;
   } else if (process.env.NODE_ENV === 'development') {
+    console.log('🎣 Development mode - creating/finding test user');
     // For development, create or use a test user
     try {
       const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
+      console.log('🎣 Test user query result:', testUser.rows.length);
       if (testUser.rows.length === 0) {
+        console.log('🎣 Creating new test user');
         const newUser = await query(
           'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
           ['test@fishing.com', 'test_hash']
         );
         userId = newUser.rows[0].id;
+        console.log('🎣 Created test user with ID:', userId);
       } else {
         userId = testUser.rows[0].id;
+        console.log('🎣 Found existing test user with ID:', userId);
       }
     } catch (error) {
-      console.error('Test user creation failed:', error);
-      return res.status(500).json({ error: 'Authentication required' });
+      console.error('🎣 Test user creation failed:', error);
+      return res.status(500).json({ error: 'Database error in development mode' });
     }
   } else {
+    console.log('🎣 Production mode - authentication required');
     return res.status(401).json({ error: 'Authentication required' });
   }
   try {

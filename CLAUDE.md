@@ -46,6 +46,14 @@ npm run db:migrate
 npm test
 ```
 
+### Development Best Practices
+- **NEVER COMMIT BEFORE TESTING**: Always thoroughly test functionality before creating git commits
+- Test all user flows and edge cases
+- Verify compilation succeeds without errors
+- Check browser console for JavaScript errors
+- Test on different screen sizes and browsers
+- Ensure database operations work correctly
+
 ### API Integrations Required
 - Google Maps JavaScript API (location plotting)
 - Weather API (environmental conditions)

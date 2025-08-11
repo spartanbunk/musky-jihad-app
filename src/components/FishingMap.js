@@ -58,24 +58,50 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
   }, [catches, selectedSpecies, map, isMapLoaded])
 
   const initializeMap = () => {
-    if (!mapRef.current || !window.google) {
-      console.error('Map ref or Google not available:', { mapRef: !!mapRef.current, google: !!window.google })
+    if (!mapRef.current) {
+      console.error('Map ref not available')
       return
     }
 
-    console.log('Initializing Google Maps...')
-    const newMap = new window.google.maps.Map(mapRef.current, {
-        center: lakeStClairCenter,
-        zoom: 11,
-        mapTypeId: 'hybrid',
-        styles: [
-          {
-            featureType: 'water',
-            elementType: 'geometry',
-            stylers: [{ color: '#006994' }]
-          }
-        ]
-      })
+    if (!window.google) {
+      console.log('Google Maps not loaded - showing placeholder')
+      mapRef.current.innerHTML = `
+        <div style="
+          height: 100%; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          background: #f3f4f6;
+          border: 2px dashed #d1d5db;
+          border-radius: 8px;
+          color: #6b7280;
+          text-align: center;
+          padding: 20px;
+        ">
+          <div>
+            <div style="font-size: 24px; margin-bottom: 10px;">🗺️</div>
+            <div style="font-weight: bold; margin-bottom: 5px;">Map Temporarily Unavailable</div>
+            <div style="font-size: 14px;">Voice commands and catch logging still work!</div>
+          </div>
+        </div>
+      `
+      return
+    }
+
+    try {
+      console.log('Initializing Google Maps...')
+      const newMap = new window.google.maps.Map(mapRef.current, {
+          center: lakeStClairCenter,
+          zoom: 11,
+          mapTypeId: 'hybrid',
+          styles: [
+            {
+              featureType: 'water',
+              elementType: 'geometry',
+              stylers: [{ color: '#006994' }]
+            }
+          ]
+        })
 
       // Add click listener for new catch locations
       newMap.addListener('click', (event) => {
@@ -185,6 +211,34 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
         },
         map: newMap
       })
+    }
+    } catch (error) {
+      console.error('Error initializing Google Maps:', error)
+      setIsMapLoaded(false)
+      
+      // Show error message in map container
+      if (mapRef.current) {
+        mapRef.current.innerHTML = `
+          <div style="
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #fef2f2;
+            border: 2px dashed #fecaca;
+            border-radius: 8px;
+            color: #dc2626;
+            text-align: center;
+            padding: 20px;
+          ">
+            <div>
+              <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Map Error</div>
+              <div style="font-size: 14px;">Voice commands and catch logging still work!</div>
+            </div>
+          </div>
+        `
+      }
     }
   }
 

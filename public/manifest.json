@@ -1,0 +1,59 @@
+{
+  "name": "Lake St. Clair Musky Intelligence",
+  "short_name": "MuskyJihad",
+  "description": "AI-powered musky fishing intelligence for Lake St. Clair",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["sports", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mark Fish",
+      "short_name": "Mark Fish",
+      "description": "Quickly log a fish catch",
+      "url": "/mark-fish",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "32x32",
+          "type": "image/x-icon"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View fishing conditions",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "32x32", 
+          "type": "image/x-icon"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/mark-fish",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
