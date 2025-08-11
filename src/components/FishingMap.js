@@ -22,11 +22,23 @@ export default function FishingMap({ catches, selectedSpecies }) {
   }
 
   useEffect(() => {
+    // Check if Google Maps API key is configured
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+      console.error('Google Maps API key not configured. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env file')
+      setIsMapLoaded(false)
+      return
+    }
+
     // Load Google Maps script
     if (!window.google) {
       const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY'}&libraries=places`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
       script.onload = initializeMap
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script')
+        setIsMapLoaded(false)
+      }
       document.head.appendChild(script)
     } else {
       initializeMap()
@@ -164,12 +176,33 @@ export default function FishingMap({ catches, selectedSpecies }) {
           background: 'rgba(255, 255, 255, 0.9)',
           padding: '20px',
           borderRadius: '8px',
-          textAlign: 'center'
+          textAlign: 'center',
+          border: '1px solid #e2e8f0'
         }}>
-          <div>Loading Lake St. Clair map...</div>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '5px' }}>
-            Click anywhere on the lake to log a catch
-          </div>
+          {(!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') ? (
+            <div>
+              <div style={{ color: '#dc2626', fontWeight: 'bold', marginBottom: '10px' }}>🗺️ Map Configuration Required</div>
+              <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}>
+                Google Maps API key needed to display map
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: '1.4' }}>
+                Get a free API key at:<br/>
+                <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" 
+                   target="_blank" 
+                   style={{ color: '#0284c7', textDecoration: 'underline' }}>
+                  developers.google.com/maps
+                </a><br/>
+                Then update NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div>Loading Lake St. Clair map...</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '5px' }}>
+                Click anywhere on the lake to log a catch
+              </div>
+            </div>
+          )}
         </div>
       )}
 

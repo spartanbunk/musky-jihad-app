@@ -6,6 +6,7 @@ import FishingMap from './FishingMap'
 import CatchLogger from './CatchLogger'
 import SpeciesSelector from './SpeciesSelector'
 import FishingReports from './FishingReports'
+import CatchEditModal from './CatchEditModal'
 
 export default function FishingDashboard({ user }) {
   const [selectedSpecies, setSelectedSpecies] = useState('musky')
@@ -13,6 +14,7 @@ export default function FishingDashboard({ user }) {
   const [aiRecommendations, setAiRecommendations] = useState(null)
   const [userCatches, setUserCatches] = useState([])
   const [dailyReport, setDailyReport] = useState(null)
+  const [editingCatch, setEditingCatch] = useState(null)
 
   useEffect(() => {
     // Load current conditions on dashboard mount
@@ -76,21 +78,23 @@ export default function FishingDashboard({ user }) {
 
   const fetchUserCatches = async () => {
     try {
-      // Mock data - replace with API call
-      setUserCatches([
-        {
-          id: 1,
-          species: 'musky',
-          length: 42,
-          weight: 18.5,
-          latitude: 42.4583,
-          longitude: -82.7167,
-          catchTime: new Date().toISOString(),
-          conditions: { temp: 68, wind: 12 }
+      const response = await fetch('http://localhost:3011/api/catches', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      ])
+      })
+      
+      if (response.ok) {
+        const catches = await response.json()
+        setUserCatches(catches)
+      } else {
+        console.error('Failed to fetch catches from API')
+        // Keep empty array if API fails
+        setUserCatches([])
+      }
     } catch (error) {
       console.error('Error fetching catches:', error)
+      setUserCatches([])
     }
   }
 
@@ -300,6 +304,67 @@ export default function FishingDashboard({ user }) {
     setUserCatches(prev => [newCatch, ...prev])
     fetchAIRecommendations() // Refresh recommendations with new data
   }
+  
+  const handleCatchUpdate = async (updatedCatch) => {
+    try {
+      const updateData = {
+        length: updatedCatch.length,
+        weight: updatedCatch.weight,
+        depth: updatedCatch.depth,
+        lureType: updatedCatch.lureType,
+        locationNotes: updatedCatch.locationNotes,
+        photoUrl: updatedCatch.photoUrl
+      }
+      
+      const response = await fetch(`http://localhost:3011/api/catches/${updatedCatch.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(updateData)
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setUserCatches(prev => prev.map(fishCatch => 
+          fishCatch.id === updatedCatch.id 
+            ? { ...fishCatch, ...updateData }
+            : fishCatch
+        ))
+        setEditingCatch(null)
+        alert('Catch updated successfully! 🎣')
+      } else {
+        alert('Failed to update catch')
+      }
+    } catch (error) {
+      console.error('Error updating catch:', error)
+      alert('Error updating catch')
+    }
+  }
+  
+  const handleCatchDelete = async (catchId) => {
+    try {
+      const response = await fetch(`http://localhost:3011/api/catches/${catchId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (response.ok) {
+        // Remove from local state
+        setUserCatches(prev => prev.filter(fishCatch => fishCatch.id !== catchId))
+        setEditingCatch(null)
+        alert('Catch deleted successfully! 🗑️')
+      } else {
+        alert('Failed to delete catch')
+      }
+    } catch (error) {
+      console.error('Error deleting catch:', error)
+      alert('Error deleting catch')
+    }
+  }
 
   return (
     <div>
@@ -421,40 +486,148 @@ export default function FishingDashboard({ user }) {
         </div>
       </div>
 
-      {/* Recent Catches */}
+      {/* Recent Catches with Enhanced CRUD Operations */}
       <div className="card" style={{ marginTop: '20px' }}>
         <h3 style={{ color: '#1e3a8a', marginBottom: '15px' }}>Recent Catches</h3>
         {userCatches.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
-            {userCatches.slice(0, 6).map(fishCatch => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
+            {userCatches.slice(0, 8).map(fishCatch => (
               <div key={fishCatch.id} style={{ 
                 background: '#f8fafc', 
-                padding: '15px', 
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
-                    {fishCatch.species}
+                padding: '20px', 
+                borderRadius: '12px',
+                border: '2px solid #e2e8f0',
+                position: 'relative',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onClick={() => setEditingCatch(fishCatch)}
+              onMouseEnter={(e) => {
+                e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
+                e.target.style.borderColor = '#0284c7'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)'
+                e.target.style.borderColor = '#e2e8f0'
+              }}
+              >
+                {/* Quick action indicator */}
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '10px', 
+                  right: '15px', 
+                  color: '#0284c7',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold'
+                }}>
+                  ✏️ Click to Edit
+                </div>
+                
+                {/* Photo display */}
+                {fishCatch.photoUrl && (
+                  <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+                    <img 
+                      src={fishCatch.photoUrl} 
+                      alt={`${fishCatch.species} catch`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '150px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingRight: '80px' }}>
+                  <span style={{ fontWeight: 'bold', textTransform: 'capitalize', fontSize: '1.1rem', color: '#1e3a8a' }}>
+                    🐟 {fishCatch.species}
                   </span>
                   <span style={{ color: '#64748b', fontSize: '0.9rem' }}>
                     {new Date(fishCatch.catchTime).toLocaleDateString()}
                   </span>
                 </div>
-                <p style={{ margin: '5px 0' }}>Length: {fishCatch.length}"</p>
-                <p style={{ margin: '5px 0' }}>Weight: {fishCatch.weight} lbs</p>
-                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                  Conditions: {fishCatch.conditions.temp}°F, {fishCatch.conditions.wind}mph wind
-                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                  <div style={{ fontWeight: 'bold' }}>📏 {fishCatch.length}"</div>
+                  <div style={{ fontWeight: 'bold' }}>⚖️ {fishCatch.weight} lbs</div>
+                </div>
+                
+                {fishCatch.depth && (
+                  <div style={{ margin: '5px 0', fontSize: '0.9rem', color: '#64748b' }}>
+                    🌊 Depth: {fishCatch.depth} feet
+                  </div>
+                )}
+                
+                {fishCatch.lureType && (
+                  <div style={{ margin: '5px 0', fontSize: '0.9rem', color: '#64748b' }}>
+                    🎣 Lure: {fishCatch.lureType}
+                  </div>
+                )}
+                
+                {/* Compact conditions display */}
+                <div style={{ 
+                  color: '#64748b', 
+                  fontSize: '0.8rem', 
+                  marginTop: '12px',
+                  padding: '8px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '6px',
+                  border: '1px solid #e0f2fe'
+                }}>
+                  {fishCatch.conditions && Object.keys(fishCatch.conditions).length > 0 ? (
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#0369a1' }}>🌊 Conditions:</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.75rem' }}>
+                        {fishCatch.conditions.airTemperature && (
+                          <div>🌡️ {fishCatch.conditions.airTemperature}°F</div>
+                        )}
+                        {fishCatch.conditions.waterTemp && (
+                          <div>💧 {fishCatch.conditions.waterTemp}°F</div>
+                        )}
+                        {fishCatch.conditions.windSpeed && (
+                          <div>💨 {fishCatch.conditions.windSpeed}mph {fishCatch.conditions.windDirection || ''}</div>
+                        )}
+                        {fishCatch.conditions.barometricPressure && (
+                          <div>📊 {fishCatch.conditions.barometricPressure}"</div>
+                        )}
+                      </div>
+                      {fishCatch.conditions.moonPhase && (
+                        <div style={{ marginTop: '4px', fontSize: '0.75rem' }}>
+                          🌙 {fishCatch.conditions.moonPhase}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ color: '#94a3b8' }}>No environmental data recorded</div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <p style={{ color: '#64748b', textAlign: 'center', padding: '40px' }}>
-            No catches logged yet. Start logging your catches to build your fishing intelligence!
-          </p>
+          <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎣</div>
+            <h4 style={{ color: '#374151', marginBottom: '10px' }}>No catches logged yet!</h4>
+            <p>Start logging your catches to build your fishing intelligence database.</p>
+            <p style={{ fontSize: '0.9rem', marginTop: '10px' }}>
+              💡 Click anywhere on the map to quickly log a catch at that location
+            </p>
+          </div>
         )}
       </div>
+      
+      {/* Edit Modal */}
+      {editingCatch && (
+        <CatchEditModal
+          catchData={editingCatch}
+          onSave={handleCatchUpdate}
+          onClose={() => setEditingCatch(null)}
+          onDelete={handleCatchDelete}
+        />
+      )}
     </div>
   )
 }

@@ -25,7 +25,7 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
   ]
 
   useEffect(() => {
-    // Listen for map clicks to auto-fill location
+    // Listen for map clicks to auto-fill location and conditions
     const handleMapClick = (event) => {
       setFormData(prev => ({
         ...prev,
@@ -76,6 +76,48 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       alert('Please fill in all required fields')
       return
     }
+    
+    // Automatically capture the exact time when user submits the catch
+    const catchTimestamp = new Date().toISOString()
+    console.log('🎣 Logging catch at:', catchTimestamp)
+
+    // Extract comprehensive environmental conditions
+    const environmentalConditions = currentConditions ? {
+      // Weather conditions
+      windSpeed: currentConditions.windSpeed,
+      windDirection: currentConditions.windDirection,
+      airTemperature: currentConditions.temperature,
+      barometricPressure: currentConditions.pressure,
+      
+      // Water conditions
+      waterTemp: currentConditions.waterTemperature ? 
+        currentConditions.waterTemperature.average : 
+        currentConditions.waterTemp,
+      waterTempRange: currentConditions.waterTemperature?.temperatureRange,
+      warmestWaterTemp: currentConditions.waterTemperature?.warmest?.temperature,
+      coldestWaterTemp: currentConditions.waterTemperature?.coldest?.temperature,
+      waveHeight: currentConditions.waveHeight,
+      
+      // Sky conditions
+      cloudCover: currentConditions.cloudCover,
+      humidity: currentConditions.humidity,
+      
+      // Astronomical conditions
+      moonPhase: currentConditions.moonPhase?.name || currentConditions.moonPhase,
+      moonIllumination: currentConditions.moonPhase?.illumination,
+      moonOptimal: currentConditions.moonPhase?.optimal,
+      
+      // Sunrise/sunset times
+      sunrise: currentConditions.astronomy?.sunrise,
+      sunset: currentConditions.astronomy?.sunset,
+      moonrise: currentConditions.astronomy?.moonrise,
+      moonset: currentConditions.astronomy?.moonset,
+      
+      // Data quality and source information
+      dataSource: currentConditions.source,
+      dataQuality: currentConditions.dataQuality,
+      capturedAt: catchTimestamp
+    } : {}
 
     const catchData = {
       id: Date.now(), // Temporary ID - will be replaced by database
@@ -86,16 +128,75 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       longitude: parseFloat(formData.longitude),
       depth: formData.depth ? parseFloat(formData.depth) : null,
       lureType: formData.lureType,
-      catchTime: new Date().toISOString(),
-      conditions: currentConditions || {},
-      photo: formData.photo ? URL.createObjectURL(formData.photo) : null
+      catchTime: catchTimestamp,
+      conditions: environmentalConditions,
+      photo: formData.photo ? URL.createObjectURL(formData.photo) : null,
+      photoUrl: formData.photo ? URL.createObjectURL(formData.photo) : null
     }
 
     try {
-      // Here you would normally send to your API
-      // await fetch('/api/catches', { method: 'POST', body: catchData })
+      // First upload the photo if one was selected
+      let photoUrl = null
+      if (formData.photo) {
+        const photoFormData = new FormData()
+        photoFormData.append('photo', formData.photo)
+        
+        try {
+          const uploadResponse = await fetch('http://localhost:3011/api/uploads/catch-photo', {
+            method: 'POST',
+            body: photoFormData
+          })
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json()
+            photoUrl = `http://localhost:3011${uploadResult.url}`
+          }
+        } catch (uploadError) {
+          console.error('Photo upload failed:', uploadError)
+          // Continue without photo
+        }
+      }
       
-      onCatchLogged(catchData)
+      // Send to backend API to store in database
+      const response = await fetch('http://localhost:3011/api/catches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming JWT auth
+        },
+        body: JSON.stringify({
+          species: formData.species,
+          length: parseFloat(formData.length),
+          weight: parseFloat(formData.weight),
+          latitude: parseFloat(formData.latitude),
+          longitude: parseFloat(formData.longitude),
+          depth: formData.depth ? parseFloat(formData.depth) : null,
+          lureType: formData.lureType,
+          catchTime: catchTimestamp,
+          conditions: environmentalConditions,
+          locationNotes: `Caught at ${formData.latitude}, ${formData.longitude}`,
+          speciesSpecificAttributes: {},
+          photoUrl: photoUrl
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Catch saved to database:', result)
+        
+        // Update the catchData with the real database ID and photo URL
+        catchData.id = result.id
+        catchData.catchTime = result.catchTime
+        catchData.photoUrl = photoUrl
+        
+        onCatchLogged(catchData)
+      } else {
+        console.error('Failed to save catch to database')
+        // Still call onCatchLogged for local display, but with temp ID
+        onCatchLogged(catchData)
+        alert('Catch logged locally, but could not save to database. Please check your connection.')
+        return
+      }
       
       // Reset form
       setFormData({
@@ -341,6 +442,23 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
               fontSize: '16px'
             }}
           />
+        </div>
+
+        {/* Catch Time Notice */}
+        <div style={{ 
+          marginBottom: '15px', 
+          padding: '10px', 
+          background: '#f0f9ff', 
+          borderRadius: '6px',
+          border: '1px solid #e0f2fe',
+          fontSize: '0.9rem',
+          color: '#0369a1'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>📅 Catch Time</div>
+          <div>Will be automatically set to: {new Date().toLocaleString()}</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '3px' }}>
+            Time will be captured exactly when you click "Log Catch"
+          </div>
         </div>
 
         {/* Submit Button */}
