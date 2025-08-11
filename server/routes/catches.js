@@ -6,15 +6,16 @@ const router = express.Router()
 
 // Get all catches for authenticated user
 router.get('/', async (req, res) => {
-  console.log('🎣 GET /api/catches - Environment:', process.env.NODE_ENV);
-  console.log('🎣 Headers:', Object.keys(req.headers));
+  const currentEnv = (process.env.NODE_ENV || '').trim();
+  console.log('🎣 GET /api/catches - Environment:', currentEnv);
+  console.log('🎣 Environment is development?:', currentEnv === 'development');
   
   // Skip auth in development for testing
   let userId = null;
   if (req.user && req.user.userId) {
     console.log('🎣 Using authenticated user:', req.user.userId);
     userId = req.user.userId;
-  } else if (process.env.NODE_ENV === 'development') {
+  } else if (currentEnv === 'development') {
     console.log('🎣 Development mode - looking for test user');
     // For development, use test user
     try {
@@ -90,15 +91,21 @@ router.get('/', async (req, res) => {
 
 // Log a new catch
 router.post('/', async (req, res) => {
-  console.log('🎣 POST /api/catches - Environment:', process.env.NODE_ENV);
-  console.log('🎣 Request headers:', req.headers);
+  const currentEnv = (process.env.NODE_ENV || '').trim();
+  console.log('🎣 POST /api/catches - Environment:', currentEnv);
+  console.log('🎣 Environment check:', { 
+    raw: process.env.NODE_ENV,
+    trimmed: currentEnv,
+    isDevelopment: currentEnv === 'development',
+    length: currentEnv.length
+  });
   
   // Skip auth in development for testing
   let userId = null;
   if (req.user && req.user.userId) {
     console.log('🎣 Using authenticated user:', req.user.userId);
     userId = req.user.userId;
-  } else if (process.env.NODE_ENV === 'development') {
+  } else if (currentEnv === 'development') {
     console.log('🎣 Development mode - creating/finding test user');
     // For development, create or use a test user
     try {

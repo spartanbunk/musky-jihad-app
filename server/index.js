@@ -5,6 +5,13 @@ const morgan = require('morgan')
 const path = require('path')
 require('dotenv').config()
 
+// Ensure NODE_ENV is set (fallback to development if not specified)
+// Trim any whitespace from NODE_ENV
+process.env.NODE_ENV = (process.env.NODE_ENV || 'development').trim()
+console.log('🔧 Server starting with NODE_ENV:', process.env.NODE_ENV)
+console.log('🔧 NODE_ENV length:', process.env.NODE_ENV.length)
+console.log('🔧 NODE_ENV is development?:', process.env.NODE_ENV === 'development')
+
 const { router: authRoutes } = require('./routes/auth')
 const catchesRoutes = require('./routes/catches')
 const weatherRoutes = require('./routes/weather')
