@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Configuration
 AWS_IP="3.149.167.85"
 APP_NAME="musky-jihad"
-GIT_REPO="https://github.com/yourusername/musky_jihad.git"  # Update this!
+GIT_REPO="https://github.com/spartanbunk/musky-jihad-app.git"
 GIT_BRANCH="musky-jihad-android"
 APP_DIR="/opt/${APP_NAME}"
 BACKUP_DIR="/opt/backups"
