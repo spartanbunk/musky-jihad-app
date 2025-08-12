@@ -119,4 +119,122 @@ a {
   .nav-links {
     gap: 15px;
   }
+  
+  /* CRITICAL MOBILE FIXES */
+  
+  /* Force single column layout on mobile - NUCLEAR OVERRIDE */
+  .dashboard-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    gap: 15px !important;
+  }
+  
+  /* Override ALL inline grid styles on mobile */
+  div[style*="grid-template-columns"],
+  div[style*="display: grid"],
+  *[style*="grid-template-columns"] {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+  }
+  
+  /* Ensure dashboard grid children stack properly */
+  .dashboard-grid > div,
+  .dashboard-grid > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Full-width mobile cards */
+  .card {
+    margin: 10px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Larger touch targets for mobile */
+  button, .btn {
+    min-height: 44px !important;
+    padding: 12px 20px !important;
+    font-size: 16px !important; /* Prevents iOS zoom */
+    touch-action: manipulation; /* Prevents double-tap zoom */
+  }
+  
+  /* Mobile-optimized form inputs */
+  input, select, textarea {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents iOS zoom */
+    padding: 12px !important;
+  }
+  
+  /* Reduce heading sizes on mobile */
+  h1 { font-size: 1.8rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.3rem !important; }
+}
+
+/* Floating Action Button Styles */
+.fab-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: none; /* Hidden by default, shown on mobile */
+}
+
+@media (max-width: 768px) {
+  .fab-container {
+    display: block; /* Show FAB only on mobile */
+  }
+  
+  /* ULTIMATE MOBILE GRID FIX - HIGHEST SPECIFICITY */
+  div.dashboard-grid[style*="grid-template-columns"] {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+  }
+}
+
+.fab-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.fab-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile utility classes */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
 }

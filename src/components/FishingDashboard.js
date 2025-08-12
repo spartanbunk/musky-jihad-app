@@ -435,6 +435,26 @@ export default function FishingDashboard({ user }) {
 
   return (
     <div>
+      {/* Mobile Floating Action Button */}
+      <div className="fab-container mobile-only">
+        <button 
+          className="fab-button"
+          onClick={() => {
+            // Trigger the same action as "Start Logging" button
+            const catchLogger = document.querySelector('[data-catch-logger]');
+            if (catchLogger) {
+              const startButton = catchLogger.querySelector('button');
+              if (startButton && startButton.textContent.includes('Start Logging')) {
+                startButton.click();
+              }
+            }
+          }}
+          title="Mark Fish"
+        >
+          🎣
+        </button>
+      </div>
+
       <div className="card">
         <div style={{ 
           display: 'flex', 
@@ -537,7 +557,7 @@ export default function FishingDashboard({ user }) {
       <VoiceActivation />
 
       {/* Map and Catch Logger */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginTop: '20px' }}>
+      <div className="dashboard-grid" style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         <div className="card" data-map-container>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
             <h3 style={{ color: '#1e3a8a', margin: 0 }}>

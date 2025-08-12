@@ -110,13 +110,24 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
 
   const getCurrentLocation = async () => {
     try {
+      console.log('🎣 CatchLogger: GPS button clicked - requesting location...')
       const location = await LocationService.getCurrentLocationForFishing()
       
-      setFormData(prev => ({
-        ...prev,
-        latitude: location.latitude.toFixed(6),
-        longitude: location.longitude.toFixed(6)
-      }))
+      console.log('🎣 CatchLogger: Location received:', location)
+      console.log('🎣 CatchLogger: Setting form data...')
+      
+      const newLat = location.latitude.toFixed(6)
+      const newLng = location.longitude.toFixed(6)
+      
+      setFormData(prev => {
+        const updated = {
+          ...prev,
+          latitude: newLat,
+          longitude: newLng
+        }
+        console.log('🎣 CatchLogger: Form data updated:', updated)
+        return updated
+      })
       
       // Show accuracy feedback
       const accuracyMessage = location.accuracy < 10 ? 
@@ -124,10 +135,11 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
         `📍 Location captured (±${location.accuracy.toFixed(0)}m accuracy)`
       
       console.log(accuracyMessage)
+      alert(`${accuracyMessage}\nLat: ${newLat}, Lng: ${newLng}`)
       
     } catch (error) {
-      console.error('Enhanced location error:', error)
-      alert(error.message || 'Unable to get current location. Please enter coordinates manually or click on the map.')
+      console.error('🎣 CatchLogger: Location error:', error)
+      alert(`Location Error: ${error.message || 'Unable to get current location. Please enter coordinates manually or click on the map.'}`)
     }
   }
 
@@ -352,7 +364,7 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
 
   if (!isLogging) {
     return (
-      <div className="card">
+      <div className="card" data-catch-logger>
         <h3 style={{ color: '#1e3a8a', marginBottom: '15px' }}>🎣 Log a Catch</h3>
         <div style={{ textAlign: 'center', padding: '30px' }}>
           <p style={{ marginBottom: '20px', color: '#64748b' }}>

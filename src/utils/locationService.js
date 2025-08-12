@@ -75,13 +75,27 @@ class LocationService {
 
   static async getCurrentLocationForFishing() {
     console.log('🎣 Starting fishing-specific location capture...');
+    console.log('📱 User agent:', navigator.userAgent);
+    console.log('🔒 Protocol:', window.location.protocol);
+    console.log('🌐 Host:', window.location.host);
+    
+    // Check if HTTPS is required (mobile browsers)
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const isHTTPS = window.location.protocol === 'https:';
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isMobile && !isHTTPS && !isLocalhost) {
+      console.error('🚨 Mobile device detected but not HTTPS - location will likely fail');
+      throw new Error('HTTPS required for location access on mobile devices. Please use ngrok or deploy to HTTPS.');
+    }
+    
     console.log('🎣 Attempting high-accuracy GPS (this may take 10-15 seconds)...');
     
     try {
       // First attempt: Maximum accuracy for fishing
       const location = await this.getCurrentLocation({
         enableHighAccuracy: true,
-        timeout: 20000, // Longer timeout for GPS fix
+        timeout: 30000, // Longer timeout for mobile GPS fix
         maximumAge: 0 // Force completely fresh location
       });
       
