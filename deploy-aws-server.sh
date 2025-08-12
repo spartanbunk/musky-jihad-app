@@ -14,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-AWS_IP="3.149.167.85"
+AWS_IP="18.217.224.120"
 APP_NAME="musky-jihad"
 GIT_REPO="https://github.com/spartanbunk/musky-jihad-app.git"
 GIT_BRANCH="musky-jihad-android"
@@ -32,35 +32,36 @@ echo ""
 install_prerequisites() {
     echo -e "${BLUE}📦 Installing prerequisites...${NC}"
     
-    # Update system
-    sudo apt update
+    # Update system (CentOS)
+    sudo yum update -y
     
     # Install Docker
     if ! command -v docker &> /dev/null; then
         echo -e "${YELLOW}🐳 Installing Docker...${NC}"
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sudo sh get-docker.sh
+        sudo yum install -y docker
         sudo usermod -aG docker $USER
-        rm get-docker.sh
+        sudo systemctl start docker
+        sudo systemctl enable docker
     fi
     
     # Install Docker Compose
     if ! command -v docker-compose &> /dev/null; then
         echo -e "${YELLOW}🐳 Installing Docker Compose...${NC}"
-        sudo apt install -y docker-compose
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
     fi
     
     # Install Git
     if ! command -v git &> /dev/null; then
         echo -e "${YELLOW}📦 Installing Git...${NC}"
-        sudo apt install -y git
+        sudo yum install -y git
     fi
     
     # Install Node.js (for npm commands)
     if ! command -v node &> /dev/null; then
         echo -e "${YELLOW}📦 Installing Node.js...${NC}"
-        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-        sudo apt install -y nodejs
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+        sudo yum install -y nodejs
     fi
     
     # Start Docker service
@@ -163,10 +164,10 @@ NEXT_PUBLIC_API_URL=https://${AWS_IP}:3011
 NEXT_PUBLIC_APP_URL=https://${AWS_IP}:3010
 API_URL=http://backend:3011
 
-# External APIs (UPDATE THESE!)
-OPENWEATHER_API_KEY=your_openweather_key_here
-GOOGLE_MAPS_API_KEY=your_google_maps_key_here
-PERPLEXITY_API_KEY=your_perplexity_key_here
+# External APIs
+OPENWEATHER_API_KEY=pending_setup
+GOOGLE_MAPS_API_KEY=AIzaSyA7LTHjiGDS2edOmW3htKnDNF_Bm2KCycU
+PERPLEXITY_API_KEY=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
 
 # Security
 JWT_SECRET=musky_fishing_jwt_secret_prod_2024_$(date +%s)

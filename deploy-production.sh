@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-AWS_IP="3.149.167.85"
+AWS_IP="18.217.224.120"
 SSH_USER="ubuntu"  # Default for Ubuntu AMI
 APP_NAME="musky-jihad"
 DOMAIN="lakestclair-fishing.com"  # You can set up DNS later
