@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import useGoogleMaps from '../hooks/useGoogleMaps'
 
 export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
   const mapRef = useRef(null)
@@ -8,7 +9,11 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
   const [markers, setMarkers] = useState([])
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [tempMarker, setTempMarker] = useState(null)
+  const [useAdvancedMarkers, setUseAdvancedMarkers] = useState(true)
   const markersRef = useRef([])
+  
+  // Use the Google Maps hook
+  const { isLoaded: googleMapsLoaded, isLoading: googleMapsLoading, error: googleMapsError, checkAdvancedMarkersAvailable } = useGoogleMaps()
 
   // Lake St. Clair coordinates
   const lakeStClairCenter = { lat: 42.4583, lng: -82.7167 }
@@ -25,30 +30,51 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
   }
 
   useEffect(() => {
-    // Check if Google Maps API key is configured
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-      console.error('Google Maps API key not configured. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env file')
-      setIsMapLoaded(false)
-      return
-    }
-
-    // Load Google Maps script
-    if (!window.google) {
-      const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
-      script.onload = initializeMap
-      script.onerror = (error) => {
-        console.error('Failed to load Google Maps script:', error)
-        console.error('API Key being used:', apiKey)
-        console.error('Script src:', script.src)
-        setIsMapLoaded(false)
-      }
-      document.head.appendChild(script)
-    } else {
-      initializeMap()
+    // Add bounce animation CSS if not already present
+    if (!document.getElementById('marker-bounce-animation')) {
+      const style = document.createElement('style')
+      style.id = 'marker-bounce-animation'
+      style.textContent = `
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+      `
+      document.head.appendChild(style)
     }
   }, [])
+
+  // Initialize map when Google Maps is loaded
+  useEffect(() => {
+    if (googleMapsLoaded && !googleMapsError) {
+      // Double-check that the Map constructor is available
+      if (!window.google || !window.google.maps || !window.google.maps.Map) {
+        console.warn('⚠️ Google Maps API not fully loaded yet, retrying...')
+        setTimeout(() => {
+          // Retry after a short delay
+          if (window.google && window.google.maps && window.google.maps.Map) {
+            console.log('🗺️ Google Maps fully loaded on retry')
+            initializeMapSafely()
+          }
+        }, 500)
+        return
+      }
+      
+      console.log('🗺️ Google Maps loaded, checking Advanced Markers availability...')
+      const advancedMarkersAvailable = checkAdvancedMarkersAvailable()
+      console.log('Advanced Markers available:', advancedMarkersAvailable)
+      
+      if (!advancedMarkersAvailable) {
+        console.warn('⚠️ Advanced Markers API not available, falling back to regular markers')
+        setUseAdvancedMarkers(false)
+      }
+      
+      initializeMapSafely()
+    } else if (googleMapsError) {
+      console.error('❌ Google Maps loading error:', googleMapsError)
+      setIsMapLoaded(false)
+    }
+  }, [googleMapsLoaded, googleMapsError])
 
   useEffect(() => {
     // Update markers when catches or selected species change
@@ -57,51 +83,76 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
     }
   }, [catches, selectedSpecies, map, isMapLoaded])
 
-  const initializeMap = () => {
+  // Helper function to create markers with fallback support
+  const createMarker = (position, map, content, title) => {
+    if (useAdvancedMarkers) {
+      try {
+        return new window.google.maps.marker.AdvancedMarkerElement({
+          position,
+          map,
+          title,
+          content
+        })
+      } catch (error) {
+        console.warn('⚠️ Advanced Marker creation failed, falling back to regular marker:', error)
+        setUseAdvancedMarkers(false)
+        // Fall through to regular marker creation
+      }
+    }
+    
+    // Regular marker fallback
+    const color = content?.style?.backgroundColor || '#22c55e'
+    return new window.google.maps.Marker({
+      position,
+      map,
+      title,
+      icon: {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        scale: 8
+      }
+    })
+  }
+
+  const initializeMapSafely = () => {
     if (!mapRef.current) {
-      console.error('Map ref not available')
+      console.error('❌ Map ref not available')
       return
     }
 
-    if (!window.google) {
-      console.log('Google Maps not loaded - showing placeholder')
-      mapRef.current.innerHTML = `
-        <div style="
-          height: 100%; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          background: #f3f4f6;
-          border: 2px dashed #d1d5db;
-          border-radius: 8px;
-          color: #6b7280;
-          text-align: center;
-          padding: 20px;
-        ">
-          <div>
-            <div style="font-size: 24px; margin-bottom: 10px;">🗺️</div>
-            <div style="font-weight: bold; margin-bottom: 5px;">Map Temporarily Unavailable</div>
-            <div style="font-size: 14px;">Voice commands and catch logging still work!</div>
-          </div>
-        </div>
-      `
+    // Final safety check before Map constructor
+    if (!window.google || !window.google.maps || typeof window.google.maps.Map !== 'function') {
+      console.error('❌ Google Maps Map constructor not available')
       return
     }
 
     try {
-      console.log('Initializing Google Maps...')
-      const newMap = new window.google.maps.Map(mapRef.current, {
-          center: lakeStClairCenter,
-          zoom: 11,
-          mapTypeId: 'hybrid',
-          styles: [
-            {
-              featureType: 'water',
-              elementType: 'geometry',
-              stylers: [{ color: '#006994' }]
-            }
-          ]
-        })
+      console.log('🗺️ Initializing Google Maps...')
+      console.log('📍 Using Advanced Markers:', useAdvancedMarkers)
+      
+      // Create map configuration
+      const mapConfig = {
+        center: lakeStClairCenter,
+        zoom: 11,
+        mapTypeId: 'hybrid',
+        styles: [
+          {
+            featureType: 'water',
+            elementType: 'geometry',
+            stylers: [{ color: '#006994' }]
+          }
+        ]
+      }
+
+      // Add mapId if using Advanced Markers
+      if (useAdvancedMarkers) {
+        mapConfig.mapId = 'DEMO_MAP_ID' // Required for Advanced Markers
+      }
+
+      const newMap = new window.google.maps.Map(mapRef.current, mapConfig)
 
       // Add click listener for new catch locations
       newMap.addListener('click', (event) => {
@@ -111,24 +162,26 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
       
       // Remove any existing temporary marker
       if (tempMarker) {
-        tempMarker.setMap(null)
+        tempMarker.map = null
       }
       
       // Create a temporary marker to show where user clicked
-      const newTempMarker = new window.google.maps.Marker({
-        position: { lat, lng },
-        map: newMap,
-        title: 'Click here to log a catch',
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#ff4444',
-          fillOpacity: 0.8,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        },
-        animation: window.google.maps.Animation.DROP
-      })
+      const markerContent = document.createElement('div')
+      markerContent.style.width = '20px'
+      markerContent.style.height = '20px'
+      markerContent.style.borderRadius = '50%'
+      markerContent.style.backgroundColor = '#ff4444'
+      markerContent.style.border = '2px solid #ffffff'
+      markerContent.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
+      
+      const newTempMarker = createMarker(
+        { lat, lng },
+        newMap,
+        markerContent,
+        'Click here to log a catch'
+      )
+      
+      setTempMarker(newTempMarker)
       
       // Create info window for temp marker
       const tempInfoWindow = new window.google.maps.InfoWindow({
@@ -179,20 +232,23 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
                 // Get current markers from ref
                 const currentMarkers = markersRef.current
                 const targetMarker = currentMarkers.find(marker => {
-                  if (!marker || !marker.getPosition) return false
-                  const position = marker.getPosition()
-                  return Math.abs(position.lat() - lat) < 0.0001 && 
-                         Math.abs(position.lng() - lng) < 0.0001
+                  if (!marker || !marker.position) return false
+                  const position = marker.position
+                  return Math.abs(position.lat - lat) < 0.0001 && 
+                         Math.abs(position.lng - lng) < 0.0001
                 })
               
               if (targetMarker) {
-                // Animate the marker
-                targetMarker.setAnimation(window.google.maps.Animation.BOUNCE)
-                setTimeout(() => {
-                  if (targetMarker.setAnimation) {
-                    targetMarker.setAnimation(null)
-                  }
-                }, 2000)
+                // Animate the marker using CSS
+                const content = targetMarker.content
+                if (content) {
+                  content.style.animation = 'bounce 0.5s ease-in-out 4'
+                  setTimeout(() => {
+                    if (content) {
+                      content.style.animation = ''
+                    }
+                  }, 2000)
+                }
                 
                 // Also open the info window for better UX
                 const infoWindow = targetMarker.infoWindow
@@ -205,7 +261,7 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
         },
         clearTempMarker: () => {
           if (tempMarker) {
-            tempMarker.setMap(null)
+            tempMarker.map = null
             setTempMarker(null)
           }
         },
@@ -246,11 +302,15 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
     console.log('🗺️ updateMarkers called with catches:', catches)
     
     // Clear existing markers
-    markers.forEach(marker => marker.setMap(null))
+    markers.forEach(marker => {
+      if (marker) {
+        marker.map = null
+      }
+    })
     
     // Clear temporary marker when updating with new catches
     if (tempMarker) {
-      tempMarker.setMap(null)
+      tempMarker.map = null
       setTempMarker(null)
     }
 
@@ -259,20 +319,22 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
       const config = catchData.speciesConfig || speciesConfig[catchData.species] || speciesConfig.musky
       console.log('🎯 Creating marker for catch:', catchData.species, 'with config:', config)
       
-      // Create custom marker
-      const marker = new window.google.maps.Marker({
-        position: { lat: catchData.latitude, lng: catchData.longitude },
-        map: map,
-        title: `${catchData.species.charAt(0).toUpperCase() + catchData.species.slice(1)} - ${catchData.length}" ${catchData.weight}lbs`,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: config.color,
-          fillOpacity: 0.8,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        }
-      })
+      // Create custom advanced marker
+      const markerContent = document.createElement('div')
+      markerContent.style.width = '16px'
+      markerContent.style.height = '16px'
+      markerContent.style.borderRadius = '50%'
+      markerContent.style.backgroundColor = config.color
+      markerContent.style.border = '2px solid #ffffff'
+      markerContent.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
+      markerContent.style.cursor = 'pointer'
+      
+      const marker = createMarker(
+        { lat: catchData.latitude, lng: catchData.longitude },
+        map,
+        markerContent,
+        `${catchData.species.charAt(0).toUpperCase() + catchData.species.slice(1)} - ${catchData.length}" ${catchData.weight}lbs`
+      )
 
       // Create info window with proper environmental data
       const getConditionsText = (conditions) => {
@@ -305,7 +367,7 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
         `
       })
 
-      marker.addListener('click', () => {
+      markerContent.addEventListener('click', () => {
         infoWindow.open(map, marker)
       })
 
@@ -327,6 +389,49 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
       bounds.extend({ lat: catchData.latitude, lng: catchData.longitude })
     })
     map.fitBounds(bounds)
+  }
+
+  // Show loading state
+  if (googleMapsLoading) {
+    return (
+      <div style={{ 
+        height: '400px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f8fafc',
+        border: '2px dashed #e2e8f0',
+        borderRadius: '8px',
+        color: '#64748b'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>🔄</div>
+          <div style={{ fontWeight: 'bold' }}>Loading Google Maps...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (googleMapsError) {
+    return (
+      <div style={{ 
+        height: '400px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#fee2e2',
+        border: '2px solid #fecaca',
+        borderRadius: '8px',
+        color: '#dc2626'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>⚠️</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Google Maps Error</div>
+          <div style={{ fontSize: '14px' }}>{googleMapsError}</div>
+        </div>
+      </div>
+    )
   }
 
   return (
