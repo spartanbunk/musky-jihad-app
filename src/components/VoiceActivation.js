@@ -12,6 +12,37 @@ import {
   isMarkFishCommand 
 } from '../utils/speechProcessing'
 
+// Helper functions for species configuration
+const getSpeciesEmoji = (species) => {
+  const speciesEmojis = {
+    'musky': '🐊',
+    'bass': '🐟',
+    'walleye': '🟡',
+    'pike': '🗲',
+    'perch': '🟠',
+    'bluegill': '🔵',
+    'salmon': '🍣',
+    'trout': '🌈',
+    'crappie': '⚪'
+  }
+  return speciesEmojis[species] || '🐟'
+}
+
+const getSpeciesColor = (species) => {
+  const speciesColors = {
+    'musky': '#059669',
+    'bass': '#22c55e', 
+    'walleye': '#f59e0b',
+    'pike': '#8b5cf6',
+    'perch': '#f97316',
+    'bluegill': '#3b82f6',
+    'salmon': '#ec4899',
+    'trout': '#10b981',
+    'crappie': '#6b7280'
+  }
+  return speciesColors[species] || '#22c55e'
+}
+
 // Voice states for the complete fishing workflow
 const VOICE_STATES = {
   IDLE: 'idle',
@@ -31,6 +62,8 @@ const VOICE_PROMPTS = {
   DEPTH_CONFIRMED: "Fish marked, now go catch it!",
   CHECK_CATCH: "Did you get him?",
   CATCH_CONFIRMED: "Great job guys! What species is it?",
+  CATCH_FAILED: "Sorry about that, better luck next time!",
+  MAX_RETRIES: "Let's try again later.",
   ASK_LENGTH: "How long is it?",
   ASK_WEIGHT: "What's the weight?",
   ASK_LURE: "What lure did you use?",
@@ -62,7 +95,8 @@ export default function VoiceActivation() {
     species: 0,
     length: 0,
     weight: 0,
-    lure: 0
+    lure: 0,
+    catchConfirmation: 0
   })
   const [lastHeardCommand, setLastHeardCommand] = useState('')
   const recognitionRef = useRef(null)
@@ -193,6 +227,33 @@ export default function VoiceActivation() {
     }, 20000) // 20 seconds
   }
 
+  // Start catch confirmation timer with re-prompting
+  const startCatchConfirmationTimer = () => {
+    clearTimeout(timerRef.current)
+    
+    timerRef.current = setTimeout(async () => {
+      const currentRetries = retryCounters.catchConfirmation || 0
+      
+      if (currentRetries < 3) {
+        setRetryCounters(prev => ({
+          ...prev,
+          catchConfirmation: currentRetries + 1
+        }))
+        
+        await speak(VOICE_PROMPTS.CHECK_CATCH)
+        if (recognitionRef.current && !isListening) {
+          recognitionRef.current.start()
+        }
+        
+        // Set another timer
+        startCatchConfirmationTimer()
+      } else {
+        await speak(VOICE_PROMPTS.MAX_RETRIES)
+        resetVoiceWorkflow()
+      }
+    }, 20000) // 20 seconds
+  }
+
   // Move to next field when max retries reached
   const moveToNextField = () => {
     switch (voiceState) {
@@ -242,9 +303,15 @@ export default function VoiceActivation() {
         break
         
       case VOICE_STATES.WAITING_FOR_CATCH:
-        if (isCatchConfirmation(transcript)) {
-          await handleCatchConfirmed()
+        const catchResponse = isCatchConfirmation(transcript)
+        if (catchResponse.isResponse) {
+          if (catchResponse.confirmed) {
+            await handleCatchConfirmed()
+          } else {
+            await handleCatchNotConfirmed()
+          }
         }
+        // If no valid response, current retry logic continues
         break
         
       case VOICE_STATES.COLLECTING_SPECIES:
@@ -291,6 +358,7 @@ export default function VoiceActivation() {
       // Immediately ask for depth
       console.log('🔄 Setting state to COLLECTING_DEPTH')
       setVoiceState(VOICE_STATES.COLLECTING_DEPTH)
+      voiceStateRef.current = VOICE_STATES.COLLECTING_DEPTH  // Immediately update ref
       
       console.log('🗣️ Speaking depth prompt...')
       await speak(VOICE_PROMPTS.ASK_DEPTH_FIRST)
@@ -347,15 +415,11 @@ export default function VoiceActivation() {
       }))
       
       setVoiceState(VOICE_STATES.WAITING_FOR_CATCH)
+      voiceStateRef.current = VOICE_STATES.WAITING_FOR_CATCH  // Immediately update ref
       await speak(VOICE_PROMPTS.DEPTH_CONFIRMED)
       
-      // Set 30-second timer
-      timerRef.current = setTimeout(async () => {
-        await speak(VOICE_PROMPTS.CHECK_CATCH)
-        if (recognitionRef.current && !isListening) {
-          recognitionRef.current.start()
-        }
-      }, 30000)
+      // Start catch confirmation timer with re-prompting
+      startCatchConfirmationTimer()
       
     } else {
       console.log('Depth parsing failed:', { transcript, parsed })
@@ -371,7 +435,11 @@ export default function VoiceActivation() {
   // Handle catch confirmation
   const handleCatchConfirmed = async () => {
     clearTimer()
+    // Reset catch confirmation retry counter
+    setRetryCounters(prev => ({ ...prev, catchConfirmation: 0 }))
+    
     setVoiceState(VOICE_STATES.COLLECTING_SPECIES)
+    voiceStateRef.current = VOICE_STATES.COLLECTING_SPECIES  // Immediately update ref
     await speak(VOICE_PROMPTS.CATCH_CONFIRMED)
     
     if (recognitionRef.current && !isListening) {
@@ -380,6 +448,13 @@ export default function VoiceActivation() {
     
     // Start retry timer for species
     startRetryTimer('species', VOICE_PROMPTS.CATCH_CONFIRMED)
+  }
+
+  // Handle catch not confirmed (user said no)
+  const handleCatchNotConfirmed = async () => {
+    clearTimer()
+    await speak(VOICE_PROMPTS.CATCH_FAILED)
+    resetVoiceWorkflow()
   }
 
   // Handle species input
@@ -398,6 +473,7 @@ export default function VoiceActivation() {
       setRetryCounters(prev => ({ ...prev, species: 0 }))
       
       setVoiceState(VOICE_STATES.COLLECTING_LENGTH)
+      voiceStateRef.current = VOICE_STATES.COLLECTING_LENGTH  // Immediately update ref
       await speak(VOICE_PROMPTS.ASK_LENGTH)
       
       if (recognitionRef.current && !isListening) {
@@ -432,6 +508,7 @@ export default function VoiceActivation() {
       setRetryCounters(prev => ({ ...prev, length: 0 }))
       
       setVoiceState(VOICE_STATES.COLLECTING_WEIGHT)
+      voiceStateRef.current = VOICE_STATES.COLLECTING_WEIGHT  // Immediately update ref
       await speak(VOICE_PROMPTS.ASK_WEIGHT)
       
       if (recognitionRef.current && !isListening) {
@@ -466,6 +543,7 @@ export default function VoiceActivation() {
       setRetryCounters(prev => ({ ...prev, weight: 0 }))
       
       setVoiceState(VOICE_STATES.COLLECTING_LURE)
+      voiceStateRef.current = VOICE_STATES.COLLECTING_LURE  // Immediately update ref
       await speak(VOICE_PROMPTS.ASK_LURE)
       
       if (recognitionRef.current && !isListening) {
@@ -499,6 +577,7 @@ export default function VoiceActivation() {
       setRetryCounters(prev => ({ ...prev, lure: 0 }))
       
       setVoiceState(VOICE_STATES.TAKING_PHOTO)
+      voiceStateRef.current = VOICE_STATES.TAKING_PHOTO  // Immediately update ref
       await speak(VOICE_PROMPTS.PHOTO_TIME)
       // Photo capture will be handled by the UI buttons
     } else {
@@ -594,6 +673,29 @@ export default function VoiceActivation() {
           detail: finalCatchData
         }))
         
+        // Also dispatch event to update recent catches list with full catch data
+        const fullCatchData = {
+          id: newCatch.id,
+          latitude: catchData.latitude,
+          longitude: catchData.longitude,
+          species: catchData.species,
+          length: parseFloat(catchData.length) || null,
+          weight: parseFloat(catchData.weight) || null,
+          depth: parseFloat(catchData.depth) || null,
+          lureType: catchData.lureType,
+          photoUrl: photoUrl,
+          catchTime: newCatch.catchTime || new Date().toISOString(),
+          userId: newCatch.userId,
+          speciesConfig: {
+            emoji: getSpeciesEmoji(catchData.species),
+            color: getSpeciesColor(catchData.species)
+          }
+        }
+        
+        window.dispatchEvent(new CustomEvent('catchSavedViaVoice', {
+          detail: fullCatchData
+        }))
+        
         // Reset after short delay
         setTimeout(() => {
           resetVoiceWorkflow()
@@ -619,6 +721,7 @@ export default function VoiceActivation() {
   const resetVoiceWorkflow = () => {
     clearTimer()
     setVoiceState(VOICE_STATES.IDLE)
+    voiceStateRef.current = VOICE_STATES.IDLE  // Reset ref too
     setCatchData({
       latitude: null,
       longitude: null,
@@ -634,7 +737,8 @@ export default function VoiceActivation() {
       species: 0,
       length: 0,
       weight: 0,
-      lure: 0
+      lure: 0,
+      catchConfirmation: 0
     })
     setLastCommand('')
     setLastHeardCommand('')
@@ -875,6 +979,7 @@ export default function VoiceActivation() {
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '5px', color: '#92400e' }}>Retry Status:</div>
           {retryCounters.depth > 0 && <div>Depth: {retryCounters.depth}/3 attempts</div>}
+          {retryCounters.catchConfirmation > 0 && <div>Catch Confirmation: {retryCounters.catchConfirmation}/3 attempts</div>}
           {retryCounters.species > 0 && <div>Species: {retryCounters.species}/3 attempts</div>}
           {retryCounters.length > 0 && <div>Length: {retryCounters.length}/3 attempts</div>}
           {retryCounters.weight > 0 && <div>Weight: {retryCounters.weight}/3 attempts</div>}

@@ -46,6 +46,21 @@ export default function FishingDashboard() {
     }
   }, [userCatches])
 
+  // Listen for voice workflow catches
+  useEffect(() => {
+    const handleVoiceCatch = (event) => {
+      const newCatch = event.detail
+      console.log('🎤 Voice catch received:', newCatch)
+      handleCatchLogged(newCatch)
+    }
+
+    window.addEventListener('catchSavedViaVoice', handleVoiceCatch)
+    
+    return () => {
+      window.removeEventListener('catchSavedViaVoice', handleVoiceCatch)
+    }
+  }, [])
+
   const fetchCurrentConditions = async () => {
     try {
       // Fetch complete weather + water temperature data from our backend API

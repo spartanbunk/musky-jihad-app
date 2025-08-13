@@ -15,14 +15,17 @@ const SPECIES_MAPPINGS = {
 
 // Common lure types with variations
 const LURE_MAPPINGS = {
-  'bucktail': ['bucktail', 'buck tail', 'spinner bait', 'spinnerbait'],
-  'crankbait': ['crankbait', 'crank bait', 'crank', 'diving lure'],
-  'jig': ['jig', 'jig head', 'lead head'],
-  'spinnerbait': ['spinnerbait', 'spinner bait', 'spinner'],
-  'topwater': ['topwater', 'top water', 'surface lure', 'popper'],
-  'soft plastic': ['soft plastic', 'plastic worm', 'rubber', 'grub'],
-  'spoon': ['spoon', 'casting spoon', 'trolling spoon'],
-  'live bait': ['live bait', 'minnow', 'worm', 'leech']
+  'bucktail': ['bucktail', 'buck tail', 'tail', 'buck'],
+  'crankbait': ['crankbait', 'crank bait', 'crank', 'diving lure', 'dive', 'diving'],
+  'jig': ['jig', 'jig head', 'lead head', 'head'],
+  'spinnerbait': ['spinnerbait', 'spinner bait', 'spinner', 'blade', 'bladed'],
+  'topwater': ['topwater', 'top water', 'surface lure', 'popper', 'surface', 'top'],
+  'soft plastic': ['soft plastic', 'plastic worm', 'rubber', 'grub', 'plastic', 'soft'],
+  'spoon': ['spoon', 'casting spoon', 'trolling spoon', 'metal'],
+  'live bait': ['live bait', 'minnow', 'worm', 'leech', 'live', 'bait'],
+  'swimbait': ['swimbait', 'swim bait', 'swim', 'paddle tail'],
+  'glide bait': ['glide bait', 'glide', 'glider'],
+  'tube': ['tube', 'tube jig', 'hollow body']
 }
 
 // Number word mappings for voice input
@@ -154,21 +157,41 @@ export function parseSpecies(transcript) {
 
 // Parse lure type from speech
 export function parseLure(transcript) {
-  return fuzzyMatch(transcript, LURE_MAPPINGS, 0.5)
+  console.log('Parsing lure from transcript:', transcript)
+  const result = fuzzyMatch(transcript, LURE_MAPPINGS, 0.3)
+  console.log('Lure parsing result:', result)
+  return result
 }
 
-// Check for catch confirmation phrases
+// Check for catch confirmation phrases with yes/no detection
 export function isCatchConfirmation(transcript) {
-  const confirmationPhrases = [
+  const yesPhases = [
     'nice catch', 'good catch', 'nice one', 'got him', 'got it', 
-    'fish on', 'caught one', 'landed', 'hooked up', 'yes', 'yeah'
+    'fish on', 'caught one', 'landed', 'hooked up', 'yes', 'yeah', 'yep', 'yup'
+  ]
+  
+  const noPhases = [
+    'no', 'nope', 'didn\'t get', 'didn\'t catch', 'missed', 'lost him', 
+    'lost it', 'nothing', 'no luck', 'strike out', 'struck out'
   ]
   
   const text = transcript.toLowerCase().trim()
+  console.log('Checking catch confirmation for:', text)
   
-  return confirmationPhrases.some(phrase => 
+  const isYes = yesPhases.some(phrase => 
     text.includes(phrase) || phrase.includes(text)
   )
+  
+  const isNo = noPhases.some(phrase => 
+    text.includes(phrase) || phrase.includes(text)
+  )
+  
+  console.log('Catch confirmation result:', { isYes, isNo, isResponse: isYes || isNo })
+  
+  if (isYes) return { confirmed: true, isResponse: true }
+  if (isNo) return { confirmed: false, isResponse: true }
+  
+  return { confirmed: false, isResponse: false }
 }
 
 // Check for mark fish commands
