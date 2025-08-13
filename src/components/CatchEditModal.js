@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import config, { buildPhotoUrl } from '../config/api'
 
 export default function CatchEditModal({ catchData, onSave, onClose, onDelete }) {
   const [formData, setFormData] = useState({
@@ -85,14 +86,14 @@ export default function CatchEditModal({ catchData, onSave, onClose, onDelete })
       photoFormData.append('photo', formData.photo)
       
       try {
-        const uploadResponse = await fetch('http://localhost:3011/api/uploads/catch-photo', {
+        const uploadResponse = await fetch(config.api.endpoints.uploads.catchPhoto, {
           method: 'POST',
           body: photoFormData
         })
         
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json()
-          photoUrl = `http://localhost:3011${uploadResult.url}`
+          photoUrl = buildPhotoUrl(uploadResult.url)
         }
       } catch (uploadError) {
         console.error('Photo upload failed:', uploadError)

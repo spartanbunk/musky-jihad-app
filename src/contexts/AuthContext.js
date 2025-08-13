@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import config from '../config/api'
 
 const AuthContext = createContext({})
 
@@ -36,7 +37,7 @@ export function AuthProvider({ children }) {
 
   const verifyToken = async (authToken) => {
     try {
-      const response = await fetch('http://localhost:3011/api/auth/profile', {
+      const response = await fetch(config.api.endpoints.auth.profile, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
@@ -62,7 +63,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:3011/api/auth/login', {
+      const response = await fetch(config.api.endpoints.auth.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -93,7 +94,7 @@ export function AuthProvider({ children }) {
 
   const register = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:3011/api/auth/register', {
+      const response = await fetch(config.api.endpoints.auth.register, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

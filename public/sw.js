@@ -2,9 +2,9 @@
 const CACHE_NAME = 'musky-jihad-v1'
 const urlsToCache = [
   '/',
-  '/manifest.json',
-  '/favicon.ico'
+  '/manifest.json'
   // Note: Next.js handles most caching automatically
+  // Removed favicon.ico to prevent cache errors
 ]
 
 // Install event - cache essential resources

@@ -52,14 +52,19 @@ router.post('/recommendations', authenticateToken, async (req, res) => {
     // Analyze current conditions against knowledge base
     const analysis = analyzeConditions(species, currentConditions, knowledgeBase, recentCatches.rows)
 
-    // Get real-time insights from Perplexity (if API key available)
+    // Get real-time insights from Perplexity (if enabled and API key available)
     let realTimeInsights = null
-    if (process.env.PERPLEXITY_API_KEY) {
+    const perplexityEnabled = process.env.ENABLE_PERPLEXITY_SEARCH !== 'false'
+    
+    if (perplexityEnabled && process.env.PERPLEXITY_API_KEY) {
       try {
+        console.log('Perplexity search enabled - fetching real-time insights...')
         realTimeInsights = await getPerplexityInsights(species, currentConditions)
       } catch (error) {
-        console.error('Perplexity API error:', error)
+        console.error('Perplexity API error:', error.response?.data || error.message)
       }
+    } else {
+      console.log('Perplexity search disabled or no API key')
     }
 
     // Generate recommendation text
@@ -96,6 +101,7 @@ router.post('/recommendations', authenticateToken, async (req, res) => {
       techniques: recommendation.techniques,
       analysis: analysis,
       realTimeInsights: realTimeInsights,
+      perplexitySearchEnabled: perplexityEnabled,
       generated: new Date().toISOString()
     })
 
@@ -154,7 +160,8 @@ function analyzeConditions(species, conditions, knowledgeBase, recentCatches) {
   }
 
   // Moon phase considerations
-  if (conditions.moonPhase && conditions.moonPhase.includes('New') || conditions.moonPhase.includes('Full')) {
+  const moonPhaseName = conditions.moonPhase?.name || conditions.moonPhase || ''
+  if (moonPhaseName && (moonPhaseName.includes('New') || moonPhaseName.includes('Full'))) {
     analysis.favorableFactors.push('Major moon phase may increase fish activity')
     analysis.score += 10
   }
@@ -167,7 +174,7 @@ function analyzeConditions(species, conditions, knowledgeBase, recentCatches) {
 
 // Get real-time insights from Perplexity API
 async function getPerplexityInsights(species, conditions) {
-  if (!process.env.PERPLEXITY_API_KEY) {
+  if (!process.env.PERPLEXITY_API_KEY || process.env.ENABLE_PERPLEXITY_SEARCH === 'false') {
     return null
   }
 
@@ -175,7 +182,7 @@ async function getPerplexityInsights(species, conditions) {
     const query = `Recent ${species} fishing reports and conditions on Lake St. Clair. Current conditions: ${JSON.stringify(conditions)}. What are anglers saying about recent ${species} activity?`
 
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'llama-3.1-sonar-small-128k-online',
+      model: 'sonar',
       messages: [
         {
           role: 'system',
@@ -195,13 +202,22 @@ async function getPerplexityInsights(species, conditions) {
       }
     })
 
-    return {
-      text: response.data.choices[0].message.content,
-      source: 'perplexity',
-      timestamp: new Date().toISOString()
+    if (response.data && response.data.choices && response.data.choices[0]) {
+      return {
+        text: response.data.choices[0].message.content,
+        source: 'perplexity',
+        timestamp: new Date().toISOString()
+      }
+    } else {
+      console.error('Unexpected Perplexity response format:', response.data)
+      return null
     }
   } catch (error) {
-    console.error('Perplexity API error:', error)
+    console.error('Perplexity API error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    })
     return null
   }
 }

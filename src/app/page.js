@@ -1,32 +1,57 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 import FishingDashboard from '../components/FishingDashboard'
 import AuthModal from '../components/AuthModal'
 import { registerServiceWorker, setupInstallPrompt } from '../utils/registerSW'
 
 export default function Home() {
-  // Temporarily default to authenticated for development
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const { user, isAuthenticated, logout, loading } = useAuth()
+  const router = useRouter()
   const [showAuth, setShowAuth] = useState(false)
-  const [user, setUser] = useState({ email: 'dev@fishing.com' })
 
   const handleLogin = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
     setShowAuth(false)
+    // Auth context handles the rest
   }
 
   const handleLogout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
+    logout()
   }
 
-  // Initialize PWA features
+  // Initialize PWA features and check auth
   useEffect(() => {
     registerServiceWorker()
     setupInstallPrompt()
-  }, [])
+    
+    // Redirect to login if not authenticated
+    if (!loading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, loading, router])
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '1.5rem',
+        color: '#64748b'
+      }}>
+        Loading...
+      </div>
+    )
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div>
@@ -35,14 +60,8 @@ export default function Home() {
           <nav className="nav">
             <div className="logo">🎣 Lake St. Clair Fishing Intelligence</div>
             <ul className="nav-links">
-              {isAuthenticated ? (
-                <>
-                  <li><span>Welcome, {user?.email}</span></li>
-                  <li><button className="btn btn-secondary" onClick={handleLogout}>Logout</button></li>
-                </>
-              ) : (
-                <li><button className="btn btn-primary" onClick={() => setShowAuth(true)}>Sign In</button></li>
-              )}
+              <li><span>Welcome, {user?.email}</span></li>
+              <li><button className="btn btn-secondary" onClick={handleLogout}>Logout</button></li>
             </ul>
           </nav>
         </div>

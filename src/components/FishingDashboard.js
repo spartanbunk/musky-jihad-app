@@ -1,15 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import WeatherWidget from './WeatherWidget'
 import FishingMap from './FishingMap'
 import CatchLogger from './CatchLogger'
 import SpeciesSelector from './SpeciesSelector'
 import FishingReports from './FishingReports'
 import CatchEditModal from './CatchEditModal'
+import config from '../config/api'
 import VoiceActivation from './VoiceActivation'
 
-export default function FishingDashboard({ user }) {
+export default function FishingDashboard() {
+  const { authenticatedFetch, user } = useAuth()
   const [selectedSpecies, setSelectedSpecies] = useState('musky')
   const [mapFilterSpecies, setMapFilterSpecies] = useState('all') // New state for map/catches filtering
   const [currentConditions, setCurrentConditions] = useState(null)
@@ -25,14 +28,14 @@ export default function FishingDashboard({ user }) {
   useEffect(() => {
     // Load current conditions on dashboard mount
     console.log('🚀 Dashboard mounting, fetching data...')
-    // fetchCurrentConditions() // Temporarily disabled to save Perplexity tokens
+    fetchCurrentConditions()
     fetchUserCatches()
-    // fetchDailyReport() // Temporarily disabled to save Perplexity tokens
+    fetchDailyReport()
   }, [])
 
   useEffect(() => {
     // Update AI recommendations when species changes or daily report is loaded
-    // fetchAIRecommendations() // Temporarily disabled to save Perplexity tokens
+    fetchAIRecommendations()
   }, [selectedSpecies, dailyReport])
   
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function FishingDashboard({ user }) {
   const fetchCurrentConditions = async () => {
     try {
       // Fetch complete weather + water temperature data from our backend API
-      const response = await fetch('http://localhost:3011/api/weather/current-with-water-temp')
+      const response = await fetch(config.api.endpoints.weather.currentWithWaterTemp)
       if (!response.ok) {
         throw new Error('Failed to fetch weather data')
       }
@@ -94,7 +97,7 @@ export default function FishingDashboard({ user }) {
   const fetchUserCatches = async () => {
     try {
       console.log('🚀 Starting fetchUserCatches...')
-      const response = await fetch(`http://localhost:3011/api/catches?_t=${Date.now()}`)
+      const response = await authenticatedFetch(`${config.api.endpoints.catches.base}?_t=${Date.now()}`)
       
       console.log('📡 Fetch response status:', response.status, response.statusText)
       
@@ -110,11 +113,15 @@ export default function FishingDashboard({ user }) {
         console.log('✅ setUserCatches called')
       } else {
         console.error('❌ Failed to fetch catches from API, status:', response.status)
-        // Keep empty array if API fails
         setUserCatches([])
       }
     } catch (error) {
       console.error('💥 Error fetching catches:', error)
+      // If it's an authentication error, don't set empty array - let the AuthContext handle redirect
+      if (error.message === 'No authentication token' || error.message === 'Authentication expired') {
+        console.log('🔐 Authentication error - letting AuthContext handle redirect')
+        return // Don't set empty array, let the page redirect
+      }
       setUserCatches([])
     }
   }
@@ -204,7 +211,7 @@ export default function FishingDashboard({ user }) {
       let solunarConfidence = 70
       
       try {
-        const solunarResponse = await fetch('http://localhost:3011/api/weather/solunar-multi')
+        const solunarResponse = await fetch(config.api.endpoints.weather.solunar)
         if (solunarResponse.ok) {
           const solunarData = await solunarResponse.json()
           console.log('Multi-source solunar data received:', solunarData)
@@ -256,7 +263,8 @@ export default function FishingDashboard({ user }) {
         text: recommendationText,
         confidence: solunarConfidence,
         bestTimes: bestTimes,
-        speciesName: getSpeciesDisplayName(selectedSpecies)
+        speciesName: getSpeciesDisplayName(selectedSpecies),
+        perplexitySearchEnabled: false // Daily reports don't use real-time search
       })
     } catch (error) {
       console.error('Error fetching AI recommendations:', error)
@@ -264,7 +272,8 @@ export default function FishingDashboard({ user }) {
         text: 'Unable to load recommendations. Please check back later.',
         confidence: 50,
         bestTimes: ['6:00 AM - 9:00 AM', '6:30 PM - 8:00 PM'],
-        speciesName: getSpeciesDisplayName(selectedSpecies)
+        speciesName: getSpeciesDisplayName(selectedSpecies),
+        perplexitySearchEnabled: false
       })
     }
   }
@@ -272,7 +281,7 @@ export default function FishingDashboard({ user }) {
   const fetchDailyReport = async () => {
     try {
       console.log('📊 Fetching daily fishing report from database...')
-      const response = await fetch('http://localhost:3011/api/weather/daily-fishing-report')
+      const response = await fetch(config.api.endpoints.weather.dailyReport)
       
       if (!response.ok) {
         // Handle different error cases
@@ -328,7 +337,7 @@ export default function FishingDashboard({ user }) {
       console.log('📍 Updated userCatches:', updated)
       return updated
     })
-    // fetchAIRecommendations() // Refresh recommendations with new data - disabled to save tokens
+    fetchAIRecommendations() // Refresh recommendations with new data
     
     // Clear the temporary marker from the map
     if (mapInstance && mapInstance.clearTempMarker) {
@@ -348,11 +357,10 @@ export default function FishingDashboard({ user }) {
         catchTime: updatedCatch.catchTime
       }
       
-      const response = await fetch(`http://localhost:3011/api/catches/${updatedCatch.id}`, {
+      const response = await authenticatedFetch(config.api.endpoints.catches.byId(updatedCatch.id), {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(updateData)
       })
@@ -377,11 +385,10 @@ export default function FishingDashboard({ user }) {
   
   const handleCatchDelete = async (catchId) => {
     try {
-      const response = await fetch(`http://localhost:3011/api/catches/${catchId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      console.log('Deleting catch with ID:', catchId)
+      
+      const response = await authenticatedFetch(config.api.endpoints.catches.byId(catchId), {
+        method: 'DELETE'
       })
       
       if (response.ok) {
@@ -390,7 +397,9 @@ export default function FishingDashboard({ user }) {
         setEditingCatch(null)
         alert('Catch deleted successfully! 🗑️')
       } else {
-        alert('Failed to delete catch')
+        const errorData = await response.json()
+        console.error('Delete failed:', response.status, errorData)
+        alert(`Failed to delete catch: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error deleting catch:', error)
@@ -410,7 +419,7 @@ export default function FishingDashboard({ user }) {
       
       // Small delay to let scroll animation start, then center map
       setTimeout(() => {
-        mapInstance.centerOnLocation(latitude, longitude, 16)
+        mapInstance.centerOnLocation(latitude, longitude, 11)
       }, 200)
     } else {
       console.warn('Map instance not ready yet')
@@ -521,11 +530,25 @@ export default function FishingDashboard({ user }) {
         {/* AI Recommendations */}
         {aiRecommendations && (
           <div className="card" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1px solid #0284c7' }}>
-            <h3 style={{ color: '#0369a1', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ color: '#0369a1', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               🤖 AI Fishing Recommendations for {aiRecommendations.speciesName || selectedSpecies.charAt(0).toUpperCase() + selectedSpecies.slice(1)}
               <span style={{ fontSize: '0.8rem', background: '#0284c7', color: 'white', padding: '2px 8px', borderRadius: '12px' }}>
                 {aiRecommendations.confidence}% confidence
               </span>
+              {aiRecommendations.perplexitySearchEnabled !== undefined && (
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  background: aiRecommendations.perplexitySearchEnabled ? '#10b981' : '#6b7280', 
+                  color: 'white', 
+                  padding: '2px 8px', 
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {aiRecommendations.perplexitySearchEnabled ? '🔍 Live Search ON' : '📊 Static Analysis'}
+                </span>
+              )}
             </h3>
             <div style={{ 
               marginBottom: '15px', 

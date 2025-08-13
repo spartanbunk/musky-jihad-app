@@ -1,4 +1,5 @@
 import './globals.css'
+import Providers from './providers'
 
 export const metadata = {
   title: 'Lake St. Clair Fishing Intelligence',
@@ -19,7 +20,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <div id="root">
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </div>
       </body>
     </html>

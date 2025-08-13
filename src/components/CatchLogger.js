@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import LocationService from '../utils/locationService'
+import config, { buildPhotoUrl } from '../config/api'
 
 export default function CatchLogger({ onCatchLogged, currentConditions }) {
+  const { authenticatedFetch } = useAuth()
   const [isLogging, setIsLogging] = useState(false)
   const [formData, setFormData] = useState({
     species: 'musky',
@@ -229,14 +232,14 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
         photoFormData.append('photo', formData.photo)
         
         try {
-          const uploadResponse = await fetch('http://localhost:3011/api/uploads/catch-photo', {
+          const uploadResponse = await fetch(config.api.endpoints.uploads.catchPhoto, {
             method: 'POST',
             body: photoFormData
           })
           
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json()
-            photoUrl = `http://localhost:3011${uploadResult.url}`
+            photoUrl = buildPhotoUrl(uploadResult.url)
           }
         } catch (uploadError) {
           console.error('Photo upload failed:', uploadError)
@@ -245,7 +248,7 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       }
       
       // Send to backend API to store in database
-      const response = await fetch('http://localhost:3011/api/catches', {
+      const response = await authenticatedFetch(config.api.endpoints.catches.base, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -136,7 +136,7 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
       // Create map configuration
       const mapConfig = {
         center: lakeStClairCenter,
-        zoom: 11,
+        zoom: 10,
         mapTypeId: 'hybrid',
         styles: [
           {
@@ -222,7 +222,7 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
     // Notify parent component that map is ready and pass navigation functions
     if (onMapReady) {
       onMapReady({
-        centerOnLocation: (lat, lng, zoom = 15) => {
+        centerOnLocation: (lat, lng, zoom = 11) => {
           if (newMap) {
             newMap.setCenter({ lat, lng })
             newMap.setZoom(zoom)

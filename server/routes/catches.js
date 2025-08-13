@@ -4,39 +4,13 @@ const { authenticateToken } = require('./auth')
 
 const router = express.Router()
 
+// Use the proper authentication middleware for ALL requests
+const authMiddleware = authenticateToken;
+
 // Get all catches for authenticated user
-router.get('/', async (req, res) => {
-  const currentEnv = (process.env.NODE_ENV || '').trim();
-  console.log('🎣 GET /api/catches - Environment:', currentEnv);
-  console.log('🎣 Environment is development?:', currentEnv === 'development');
-  
-  // Skip auth in development for testing
-  let userId = null;
-  if (req.user && req.user.userId) {
-    console.log('🎣 Using authenticated user:', req.user.userId);
-    userId = req.user.userId;
-  } else if (currentEnv === 'development') {
-    console.log('🎣 Development mode - looking for test user');
-    // For development, use test user
-    try {
-      const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
-      console.log('🎣 Test user found:', testUser.rows.length > 0);
-      if (testUser.rows.length > 0) {
-        userId = testUser.rows[0].id;
-        console.log('🎣 Using test user ID:', userId);
-      } else {
-        console.log('🎣 No test user found, returning 404');
-        return res.status(404).json({ error: 'No test user found' });
-      }
-    } catch (error) {
-      console.error('🎣 Database error in development:', error);
-      return res.status(500).json({ error: 'Database error in development mode' });
-    }
-  } else {
-    console.log('🎣 Production mode - returning 401');
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.get('/', authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.userId; // Get user ID from authenticated token
     const { species, limit = 50, offset = 0 } = req.query
 
     let queryText = `
@@ -90,47 +64,8 @@ router.get('/', async (req, res) => {
 })
 
 // Log a new catch
-router.post('/', async (req, res) => {
-  const currentEnv = (process.env.NODE_ENV || '').trim();
-  console.log('🎣 POST /api/catches - Environment:', currentEnv);
-  console.log('🎣 Environment check:', { 
-    raw: process.env.NODE_ENV,
-    trimmed: currentEnv,
-    isDevelopment: currentEnv === 'development',
-    length: currentEnv.length
-  });
-  
-  // Skip auth in development for testing
-  let userId = null;
-  if (req.user && req.user.userId) {
-    console.log('🎣 Using authenticated user:', req.user.userId);
-    userId = req.user.userId;
-  } else if (currentEnv === 'development') {
-    console.log('🎣 Development mode - creating/finding test user');
-    // For development, create or use a test user
-    try {
-      const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
-      console.log('🎣 Test user query result:', testUser.rows.length);
-      if (testUser.rows.length === 0) {
-        console.log('🎣 Creating new test user');
-        const newUser = await query(
-          'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-          ['test@fishing.com', 'test_hash']
-        );
-        userId = newUser.rows[0].id;
-        console.log('🎣 Created test user with ID:', userId);
-      } else {
-        userId = testUser.rows[0].id;
-        console.log('🎣 Found existing test user with ID:', userId);
-      }
-    } catch (error) {
-      console.error('🎣 Test user creation failed:', error);
-      return res.status(500).json({ error: 'Database error in development mode' });
-    }
-  } else {
-    console.log('🎣 Production mode - authentication required');
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.post('/', authMiddleware, async (req, res) => {
+  const userId = req.user.userId; // Get user ID from authenticated token
   try {
     const {
       species,
@@ -225,26 +160,8 @@ router.post('/', async (req, res) => {
 })
 
 // Update a catch
-router.put('/:catchId', async (req, res) => {
-  // Skip auth in development for testing
-  let userId = null;
-  if (req.user && req.user.userId) {
-    userId = req.user.userId;
-  } else if (process.env.NODE_ENV === 'development') {
-    // For development, use test user
-    try {
-      const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
-      if (testUser.rows.length > 0) {
-        userId = testUser.rows[0].id;
-      } else {
-        return res.status(404).json({ error: 'No test user found' });
-      }
-    } catch (error) {
-      return res.status(500).json({ error: 'Authentication required' });
-    }
-  } else {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.put('/:catchId', authMiddleware, async (req, res) => {
+  const userId = req.user.userId; // Get user ID from authenticated token
   try {
     const { catchId } = req.params
     const {
@@ -302,26 +219,10 @@ router.put('/:catchId', async (req, res) => {
 })
 
 // Delete a catch
-router.delete('/:catchId', async (req, res) => {
-  // Skip auth in development for testing
-  let userId = null;
-  if (req.user && req.user.userId) {
-    userId = req.user.userId;
-  } else if (process.env.NODE_ENV === 'development') {
-    // For development, use test user
-    try {
-      const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
-      if (testUser.rows.length > 0) {
-        userId = testUser.rows[0].id;
-      } else {
-        return res.status(404).json({ error: 'No test user found' });
-      }
-    } catch (error) {
-      return res.status(500).json({ error: 'Authentication required' });
-    }
-  } else {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.delete('/:catchId', authMiddleware, async (req, res) => {
+  const userId = req.user.userId; // Get user ID from authenticated token
+  console.log('DELETE request - catchId:', req.params.catchId, 'userId:', userId)
+  
   try {
     const { catchId } = req.params
 
@@ -342,26 +243,8 @@ router.delete('/:catchId', async (req, res) => {
 })
 
 // Get catch statistics for user
-router.get('/stats', async (req, res) => {
-  // Skip auth in development for testing
-  let userId = null;
-  if (req.user && req.user.userId) {
-    userId = req.user.userId;
-  } else if (process.env.NODE_ENV === 'development') {
-    // For development, use test user
-    try {
-      const testUser = await query('SELECT id FROM users WHERE email = $1', ['test@fishing.com']);
-      if (testUser.rows.length > 0) {
-        userId = testUser.rows[0].id;
-      } else {
-        return res.status(404).json({ error: 'No test user found' });
-      }
-    } catch (error) {
-      return res.status(500).json({ error: 'Authentication required' });
-    }
-  } else {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+router.get('/stats', authMiddleware, async (req, res) => {
+  const userId = req.user.userId; // Get user ID from authenticated token
   try {
     const statsQuery = `
       SELECT 

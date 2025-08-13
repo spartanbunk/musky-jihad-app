@@ -29,10 +29,10 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const newUser = await query(
-      `INSERT INTO users (email, password_hash, subscription_status, trial_end_date) 
-       VALUES ($1, $2, 'trial', $3) 
+      `INSERT INTO users (email, password_hash, subscription_status) 
+       VALUES ($1, $2, 'trial') 
        RETURNING id, email, subscription_status, created_at`,
-      [email, passwordHash, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)] // 7 day trial
+      [email, passwordHash]
     )
 
     const user = newUser.rows[0]
@@ -71,7 +71,7 @@ router.post('/login', async (req, res) => {
 
     // Find user
     const userResult = await query(
-      'SELECT id, email, password_hash, subscription_status, trial_end_date FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, subscription_status FROM users WHERE email = $1',
       [email]
     )
 
@@ -94,16 +94,12 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     )
 
-    // Update last login
-    await query('UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id])
-
     res.json({
       message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
-        subscriptionStatus: user.subscription_status,
-        trialEndDate: user.trial_end_date
+        subscriptionStatus: user.subscription_status
       },
       token
     })
@@ -124,7 +120,8 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid token' })
+      console.error('JWT verification error:', err.message, 'Token:', token ? token.substring(0, 20) + '...' : 'none')
+      return res.status(403).json({ error: 'Invalid token', details: err.message })
     }
     req.user = user
     next()
