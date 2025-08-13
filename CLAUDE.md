@@ -46,6 +46,56 @@ npm run db:migrate
 npm test
 ```
 
+### Troubleshooting: Process and Port Management
+
+#### Problem: `npx kill-port` doesn't reliably kill processes
+- `npx kill-port 3010` reports success but process continues running
+- Docker Desktop connectivity issues with named pipes
+- Services restart but ports remain occupied
+
+#### ✅ WORKING SOLUTIONS:
+
+**1. PowerShell Process Killing (Most Reliable)**
+```bash
+# Find process using port
+netstat -ano | findstr :3010
+
+# Kill by PID using PowerShell (WORKS)
+powershell "Stop-Process -Id [PID] -Force"
+
+# Example:
+powershell "Stop-Process -Id 22976 -Force"
+```
+
+**2. Complete Service Restart Workflow**
+```bash
+# Step 1: Find and kill all processes
+netstat -ano | findstr :3010
+netstat -ano | findstr :3011
+powershell "Stop-Process -Id [PID1] -Force"
+powershell "Stop-Process -Id [PID2] -Force"
+
+# Step 2: Verify ports are free
+netstat -ano | findstr :3010  # Should return nothing
+
+# Step 3: Restart services
+npm run dev &
+cd server && node index.js &
+```
+
+**3. Docker Issues Workaround**
+When Docker Desktop fails with named pipe errors:
+```bash
+# Don't rely on Docker containers, use local services:
+npm run dev                    # Frontend on 3010
+cd server && node index.js    # Backend on 3011
+```
+
+#### ❌ METHODS THAT DON'T WORK:
+- `npx kill-port` - Reports success but processes persist
+- `taskkill /PID` - Git Bash path issues
+- `docker-compose down` - When Docker connectivity is broken
+
 ### Development Best Practices
 - **NEVER COMMIT BEFORE TESTING**: Always thoroughly test functionality before creating git commits
 - Test all user flows and edge cases

@@ -8,6 +8,7 @@ import config, { buildPhotoUrl } from '../config/api'
 export default function CatchLogger({ onCatchLogged, currentConditions }) {
   const { authenticatedFetch } = useAuth()
   const [isLogging, setIsLogging] = useState(false)
+  const [voicePopulated, setVoicePopulated] = useState(false)
   const [formData, setFormData] = useState({
     species: 'musky',
     length: '',
@@ -98,16 +99,50 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
       }
     }
 
+    // Listen for complete voice workflow data
+    const handleVoiceWorkflowComplete = (event) => {
+      const voiceData = event.detail
+      console.log('🎤 Voice workflow completed with data:', voiceData)
+      
+      // Open the logging form
+      if (!isLogging) {
+        setIsLogging(true)
+      }
+      
+      // Pre-populate form with voice data
+      setFormData(prev => ({
+        ...prev,
+        latitude: voiceData.latitude ? voiceData.latitude.toFixed(6) : prev.latitude,
+        longitude: voiceData.longitude ? voiceData.longitude.toFixed(6) : prev.longitude,
+        depth: voiceData.depth || prev.depth,
+        species: voiceData.species || prev.species,
+        length: voiceData.length || prev.length,
+        weight: voiceData.weight || prev.weight,
+        lureType: voiceData.lureType || prev.lureType
+      }))
+      
+      // Show success message and mark as voice populated
+      setVoicePopulated(true)
+      console.log('🎣 CatchLogger: Form auto-populated with voice data')
+      
+      // Clear voice populated flag after 5 seconds
+      setTimeout(() => {
+        setVoicePopulated(false)
+      }, 5000)
+    }
+
     window.addEventListener('mapClick', handleMapClick)
     window.addEventListener('markFish', handleMarkFish)
     window.addEventListener('markFishLocationUpdate', handleMarkFishLocationUpdate)
     window.addEventListener('markFishError', handleMarkFishError)
+    window.addEventListener('voiceWorkflowComplete', handleVoiceWorkflowComplete)
     
     return () => {
       window.removeEventListener('mapClick', handleMapClick)
       window.removeEventListener('markFish', handleMarkFish)
       window.removeEventListener('markFishLocationUpdate', handleMarkFishLocationUpdate)
       window.removeEventListener('markFishError', handleMarkFishError)
+      window.removeEventListener('voiceWorkflowComplete', handleVoiceWorkflowComplete)
     }
   }, [isLogging])
 
