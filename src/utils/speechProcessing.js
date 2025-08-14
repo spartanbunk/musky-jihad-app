@@ -226,6 +226,24 @@ export function isCatchConfirmation(transcript) {
   return { confirmed: false, isResponse: false };
 }
 
+
+// Add this function to speechProcessing.js
+
+export function isStillFighting(transcript) {
+  const text = transcript.toLowerCase().trim();
+  const fightingPhrases = [
+    'still fighting',
+    'fighting it',
+    'still on',
+    'not in yet',
+    'working on it'
+  ];
+
+  if (fightingPhrases.some(phrase => text.includes(phrase))) {
+    return true;
+  }
+  return false;
+}
 /**
  * Checks if a transcript is a command to start the "mark fish" workflow.
  * @param {string} transcript
@@ -248,5 +266,6 @@ export default {
   parseNumberFromSpeech,
   isCatchConfirmation,
   isMarkFishCommand,
+  isStillFighting,
   fuzzyMatch
 };
