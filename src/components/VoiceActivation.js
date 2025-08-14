@@ -90,10 +90,91 @@ const VOICE_PROMPTS = {
   RECOLLECT_LURE: "Let's try again. What lure did you use?"
 }
 
-export default function VoiceActivation() {
+export default function VoiceActivation({ currentConditions }) {
   console.log('🔄 VoiceActivation component loaded with enhanced confirmation features')
+  console.log('🌡️ Weather conditions received:', currentConditions)
   const { authenticatedFetch } = useAuth()
   const [isListening, setIsListening] = useState(false)
+  const [weatherLoaded, setWeatherLoaded] = useState(false)
+  const [pendingVoiceStart, setPendingVoiceStart] = useState(false)
+  
+  // Track when weather data is available
+  useEffect(() => {
+    if (currentConditions && Object.keys(currentConditions).length > 0) {
+      console.log('✅ Weather data loaded and ready for voice workflow')
+      setWeatherLoaded(true)
+      
+      // Auto-start voice workflow if user tried to start before weather loaded
+      if (pendingVoiceStart) {
+        console.log('🔄 Auto-starting voice workflow after weather data loaded')
+        setPendingVoiceStart(false)
+        setTimeout(() => {
+          speak("Weather data loaded! Let's start the voice workflow.")
+          // Small delay to let speech finish before starting recognition
+          setTimeout(() => {
+            if (recognitionRef.current && !isListening) {
+              try {
+                recognitionRef.current.start()
+                console.log('🎤 Auto-started recognition after weather load')
+              } catch (error) {
+                console.error('❌ Failed to auto-start recognition:', error)
+              }
+            }
+          }, 2000)
+        }, 500)
+      }
+    } else {
+      console.log('⏳ Waiting for weather data...')
+      setWeatherLoaded(false)
+    }
+  }, [currentConditions, pendingVoiceStart, isListening])
+  
+  // State recovery mechanism for refresh scenarios
+  useEffect(() => {
+    console.log('🔄 === STATE RECOVERY CHECK ===')
+    
+    // Check if we're recovering from a refresh
+    const savedState = sessionStorage.getItem('voiceWorkflowState')
+    if (savedState) {
+      console.log('📦 Found saved voice workflow state:', savedState)
+      const parsed = JSON.parse(savedState)
+      
+      // If we were in middle of workflow, reset to safe state
+      if (parsed.voiceState && parsed.voiceState !== VOICE_STATES.IDLE) {
+        console.log('⚠️ Detected incomplete workflow after refresh')
+        console.log('⚠️ Previous state was:', parsed.voiceState)
+        console.log('🔄 Resetting to safe IDLE state')
+        
+        // Clear the saved state
+        sessionStorage.removeItem('voiceWorkflowState')
+        
+        // Notify user
+        setTimeout(() => {
+          speak("Voice session was interrupted. Please start over by saying 'mark fish'.")
+        }, 1000)
+      }
+    }
+    
+    console.log('🔄 === END STATE RECOVERY CHECK ===')
+  }, [])
+  
+  // Save state before unload for recovery
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('💾 Saving voice workflow state before unload...')
+      const stateToSave = {
+        voiceState: voiceStateRef.current,
+        catchData: catchDataRef.current,
+        tempData: tempDataRef.current,
+        timestamp: new Date().toISOString()
+      }
+      sessionStorage.setItem('voiceWorkflowState', JSON.stringify(stateToSave))
+      console.log('💾 State saved:', stateToSave)
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
   
   // Helper function to get field display status with enhanced debugging
   const getFieldStatus = (confirmedValue, tempValue, unit = '', fieldName = '') => {
@@ -176,28 +257,29 @@ export default function VoiceActivation() {
   const catchDataRef = useRef(catchData)
   const tempDataRef = useRef(tempData)
 
-  // Keep refs in sync with state to avoid stale closures
+  // CRITICAL: Keep refs in sync with state - SINGLE SOURCE OF TRUTH
+  // These effects ensure refs ALWAYS match current state
   useEffect(() => {
+    console.log('🔄 Syncing voiceStateRef:', voiceState)
     voiceStateRef.current = voiceState
   }, [voiceState])
   
   useEffect(() => {
-    console.log('🔄 === REF SYNC DEBUG ===')
-    console.log('🔄 Syncing catchDataRef with catchData:', catchData)
-    console.log('🔄 Previous catchDataRef value:', catchDataRef.current)
+    console.log('🔄 Syncing catchDataRef:', catchData)
     catchDataRef.current = catchData
-    console.log('🔄 New catchDataRef value:', catchDataRef.current)
-    console.log('🔄 === END REF SYNC ===')
   }, [catchData])
   
   useEffect(() => {
-    console.log('🔄 === TEMP REF SYNC DEBUG ===')  
-    console.log('🔄 Syncing tempDataRef with tempData:', tempData)
-    console.log('🔄 Previous tempDataRef value:', tempDataRef.current)
+    console.log('🔄 Syncing tempDataRef:', tempData)
     tempDataRef.current = tempData
-    console.log('🔄 New tempDataRef value:', tempDataRef.current)
-    console.log('🔄 === END TEMP REF SYNC ===')
   }, [tempData])
+  
+  // Helper to update voice state (no need to manually sync ref)
+  const updateVoiceState = (newState) => {
+    console.log(`📝 Updating voice state: ${voiceState} → ${newState}`)
+    setVoiceState(newState)
+    // Ref will be synced by useEffect automatically
+  }
 
   // Add comprehensive component mount/refresh debugging
   useEffect(() => {
@@ -269,9 +351,17 @@ export default function VoiceActivation() {
         
         console.log('✅ Basic recognition event handlers set')
         
-        // CRITICAL: Bind the onresult handler IMMEDIATELY after recognition creation
-        // This ensures fresh page load has proper handler binding
-        // Note: bindRecognitionHandler will be called via useEffect after function is defined
+        // CRITICAL: Defer handler binding to ensure refs are ready
+        // Use Promise.resolve() to push to next tick after render completes
+        Promise.resolve().then(() => {
+          console.log('⏳ Deferred handler binding - ensuring refs are ready...')
+          if (recognitionRef.current && typeof bindRecognitionHandler === 'function') {
+            bindRecognitionHandler()
+            console.log('✅ Handler bound after defer')
+          } else {
+            console.log('⚠️ Handler binding deferred - will be bound by useEffect')
+          }
+        })
         
       } catch (error) {
         console.error('❌ Failed to create recognition object:', error)
@@ -293,46 +383,52 @@ export default function VoiceActivation() {
     }
   }, [])
 
-  // PHASE 2: CRITICAL FIX - Use useCallback to ensure handler binding works on fresh page load
+  // PHASE 2: Create STABLE handler that doesn't recreate on state changes
+  // This handler will ALWAYS use refs for state access, never closure state
   const bindRecognitionHandler = useCallback(() => {
-    console.log('🔄 === RECOGNITION HANDLER BINDING ====')
-    console.log('🔄 Binding recognition handlers with fresh state')
-    console.log('🔄 Current voiceState:', voiceState)
-    console.log('🔄 Current voiceStateRef:', voiceStateRef.current)
+    console.log('🔄 === STABLE RECOGNITION HANDLER BINDING ====')
+    console.log('🔄 Binding STABLE handler that uses refs only')
     console.log('🔄 Recognition object exists:', !!recognitionRef.current)
-    console.log('🔄 catchDataRef.current:', catchDataRef.current)
-    console.log('🔄 tempDataRef.current:', tempDataRef.current)
     
     if (!recognitionRef.current) {
       console.log('❌ No recognition object - skipping handler binding')
       return
     }
     
-    // CRITICAL: Recreate onresult handler with current state access via refs
+    // CRITICAL: This handler uses ONLY refs, no closure state
+    // This ensures it works correctly after refresh
     recognitionRef.current.onresult = async (event) => {
       const command = event.results[0][0].transcript.toLowerCase()
       const confidence = event.results[0][0].confidence
       
-      console.log('🎤 === VOICE RESULT (FRESH HANDLER) ===')
+      console.log('🎤 === VOICE RESULT (STABLE HANDLER) ===')
       console.log(`🎤 Command: "${command}"`)
       console.log(`🎤 Confidence: ${confidence}`)
       console.log(`🎤 Current state from REF: ${voiceStateRef.current}`)
       console.log(`🎤 Current catchData from REF:`, catchDataRef.current)
       console.log(`🎤 Current tempData from REF:`, tempDataRef.current)
-      console.log('🎤 === CALLING handleVoiceResult (FRESH) ===')
       
-      setLastCommand(command)
+      // Store last command for debugging
+      if (typeof setLastCommand === 'function') {
+        setLastCommand(command)
+      }
+      
+      // Call handleVoiceResult which should also use refs
+      console.log('🎤 === CALLING handleVoiceResult ===')
       await handleVoiceResult(command, confidence)
     }
     
-    console.log('✅ Recognition onresult handler bound with fresh state access')
-    console.log('🔄 === END RECOGNITION HANDLER BINDING ====') 
-  }, [voiceState, catchData, tempData]) // Include all deps to ensure fresh binding
+    console.log('✅ STABLE recognition handler bound - uses refs only')
+    console.log('🔄 === END STABLE HANDLER BINDING ====') 
+  }, []) // NO DEPENDENCIES - stable forever!
   
-  // Rebind handlers when dependencies change (including initial mount)
+  // Bind handler ONLY ONCE when recognition is ready
+  // Since handler is stable, we don't need to rebind on state changes
   useEffect(() => {
-    bindRecognitionHandler()
-  }, [bindRecognitionHandler])
+    if (recognitionRef.current) {
+      bindRecognitionHandler()
+    }
+  }, [bindRecognitionHandler]) // bindRecognitionHandler is stable, so this only runs once
 
   // Clear any existing timers
   const clearTimer = () => {
@@ -1567,7 +1663,7 @@ export default function VoiceActivation() {
         }
       }
       
-      // Submit catch data
+      // Submit catch data WITH WEATHER CONDITIONS
       const catchPayload = {
         latitude: catchData.latitude,
         longitude: catchData.longitude,
@@ -1577,7 +1673,19 @@ export default function VoiceActivation() {
         depth: parseFloat(catchData.depth) || null,
         lureType: catchData.lureType,
         photoUrl: photoUrl,
-        catchTime: new Date().toISOString()
+        catchTime: new Date().toISOString(),
+        // Add environmental conditions from props
+        conditions: currentConditions ? {
+          airTemperature: currentConditions.temperature,
+          waterTemp: currentConditions.waterTemp,
+          windSpeed: currentConditions.windSpeed,
+          windDirection: currentConditions.windDirection,
+          barometricPressure: currentConditions.pressure,
+          cloudCover: currentConditions.cloudCover,
+          humidity: currentConditions.humidity,
+          moonPhase: currentConditions.moonPhase?.name || 'Unknown',
+          visibility: currentConditions.visibility
+        } : {}
       }
       
       const response = await authenticatedFetch(config.api.endpoints.catches.base, {
@@ -1697,6 +1805,15 @@ export default function VoiceActivation() {
     console.log('🎤 recognitionRef.current exists:', !!recognitionRef.current)
     console.log('🎤 isListening currently:', isListening)
     console.log('🎤 voiceState:', voiceState)
+    console.log('🎤 weatherLoaded:', weatherLoaded)
+    
+    // Check if weather data is loaded before allowing voice workflow
+    if (!weatherLoaded) {
+      console.log('⚠️ Cannot start voice workflow - weather data not loaded')
+      setPendingVoiceStart(true)
+      speak("Please wait while I load the current weather conditions...")
+      return
+    }
     
     if (recognitionRef.current && !isListening) {
       // Reset workflow if starting fresh
@@ -1746,6 +1863,7 @@ export default function VoiceActivation() {
     }
   }, [isSupported, isListening])
 
+  // Render logic
   if (!isSupported) {
     return (
       <div style={{ 

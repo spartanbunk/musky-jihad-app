@@ -542,8 +542,8 @@ export default function FishingDashboard() {
         <FishingReports dailyReport={dailyReport} />
       </div>
 
-      {/* Voice Activation */}
-      <VoiceActivation />
+      {/* Voice Activation - Pass weather data for complete catch logging */}
+      <VoiceActivation currentConditions={currentConditions} />
 
       {/* Map and Catch Logger */}
       <div className="dashboard-grid" style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
