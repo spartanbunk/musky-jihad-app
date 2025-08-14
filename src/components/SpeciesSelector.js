@@ -2,12 +2,12 @@
 
 export default function SpeciesSelector({ selectedSpecies, onSpeciesChange }) {
   const species = [
-    { id: 'musky', name: 'Musky', emoji: '🐟', color: '#059669' },
-    { id: 'bass', name: 'Smallmouth Bass', emoji: '🎣', color: '#7c3aed' },
-    { id: 'walleye', name: 'Walleye', emoji: '🐠', color: '#d97706' },
-    { id: 'perch', name: 'Yellow Perch', emoji: '🐟', color: '#eab308' },
-    { id: 'crappie', name: 'Crappie', emoji: '🐠', color: '#8b5cf6' },
-    { id: 'bluegill', name: 'Bluegill', emoji: '🐟', color: '#10b981' }
+    { id: 'musky', name: 'Musky', emoji: '🐊', color: '#059669' },
+    { id: 'bass', name: 'Smallmouth Bass', emoji: '🐟', color: '#22c55e' },
+    { id: 'walleye', name: 'Walleye', emoji: '🟡', color: '#f59e0b' },
+    { id: 'perch', name: 'Yellow Perch', emoji: '🟠', color: '#f97316' },
+    { id: 'crappie', name: 'Crappie', emoji: '⚪', color: '#6b7280' },
+    { id: 'bluegill', name: 'Bluegill', emoji: '🔵', color: '#3b82f6' }
   ]
 
   return (
