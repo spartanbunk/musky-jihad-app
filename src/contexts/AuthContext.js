@@ -14,22 +14,15 @@ export function AuthProvider({ children }) {
 
   // Load token and user from localStorage on mount
   useEffect(() => {
-    console.log('🔍 AuthContext: Loading auth data from storage...')
     const storedToken = localStorage.getItem('authToken')
     const storedUser = localStorage.getItem('user')
     
-    console.log('🔍 AuthContext: storedToken exists:', !!storedToken)
-    console.log('🔍 AuthContext: storedUser:', storedUser)
-    
     if (storedToken && storedUser) {
-      console.log('🔐 AuthContext: Setting user from storage:', JSON.parse(storedUser))
       setToken(storedToken)
       setUser(JSON.parse(storedUser))
       
       // Verify token is still valid
       verifyToken(storedToken)
-    } else {
-      console.log('❌ AuthContext: No stored auth data found')
     }
     
     setLoading(false)
@@ -50,12 +43,10 @@ export function AuthProvider({ children }) {
       }
       
       const userData = await response.json()
-      console.log('🔐 AuthContext: verifyToken received user data:', userData)
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))
       return true
     } catch (error) {
-      console.error('Token verification failed:', error)
       logout()
       return false
     }
@@ -87,7 +78,6 @@ export function AuthProvider({ children }) {
       
       return { success: true, user: data.user }
     } catch (error) {
-      console.error('Login error:', error)
       return { success: false, error: error.message }
     }
   }
@@ -118,7 +108,6 @@ export function AuthProvider({ children }) {
       
       return { success: true, user: data.user }
     } catch (error) {
-      console.error('Registration error:', error)
       return { success: false, error: error.message }
     }
   }

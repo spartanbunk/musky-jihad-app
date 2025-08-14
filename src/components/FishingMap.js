@@ -317,7 +317,6 @@ export default function FishingMap({ catches, selectedSpecies, onMapReady }) {
     const newMarkers = catches.map(catchData => {
       // Use the speciesConfig from the catch data if available, otherwise fall back to local config
       const config = catchData.speciesConfig || speciesConfig[catchData.species] || speciesConfig.musky
-      console.log('🎯 Creating marker for catch:', catchData.species, 'with config:', config)
       
       // Create custom advanced marker
       const markerContent = document.createElement('div')

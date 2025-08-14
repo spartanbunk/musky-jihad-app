@@ -102,24 +102,31 @@ export default function CatchLogger({ onCatchLogged, currentConditions }) {
     // Listen for complete voice workflow data
     const handleVoiceWorkflowComplete = (event) => {
       const voiceData = event.detail
-      console.log('🎤 Voice workflow completed with data:', voiceData)
+      console.log('🎤 Voice workflow event received:', voiceData)
+      console.log('🎤 Workflow stage:', voiceData.workflowStage)
+      console.log('🎤 Depth value received:', voiceData.depth, 'Type:', typeof voiceData.depth)
       
       // Open the logging form
       if (!isLogging) {
         setIsLogging(true)
       }
       
-      // Pre-populate form with voice data
-      setFormData(prev => ({
-        ...prev,
-        latitude: voiceData.latitude ? voiceData.latitude.toFixed(6) : prev.latitude,
-        longitude: voiceData.longitude ? voiceData.longitude.toFixed(6) : prev.longitude,
-        depth: voiceData.depth || prev.depth,
-        species: voiceData.species || prev.species,
-        length: voiceData.length || prev.length,
-        weight: voiceData.weight || prev.weight,
-        lureType: voiceData.lureType || prev.lureType
-      }))
+      // Pre-populate form with voice data - handle progressive updates
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          latitude: voiceData.latitude ? voiceData.latitude.toFixed(6) : prev.latitude,
+          longitude: voiceData.longitude ? voiceData.longitude.toFixed(6) : prev.longitude,
+          depth: voiceData.depth !== '' && voiceData.depth !== undefined ? voiceData.depth : prev.depth,
+          species: voiceData.species !== '' && voiceData.species !== undefined ? voiceData.species : prev.species,
+          length: voiceData.length !== '' && voiceData.length !== undefined ? voiceData.length : prev.length,
+          weight: voiceData.weight !== '' && voiceData.weight !== undefined ? voiceData.weight : prev.weight,
+          lureType: voiceData.lureType !== '' && voiceData.lureType !== undefined ? voiceData.lureType : prev.lureType
+        }
+        console.log('🎤 Setting form data to:', newData)
+        console.log('🎤 Specifically depth is now:', newData.depth)
+        return newData
+      })
       
       // Show success message and mark as voice populated
       setVoicePopulated(true)

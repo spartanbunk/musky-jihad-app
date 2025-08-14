@@ -132,8 +132,10 @@ const authenticateToken = (req, res, next) => {
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const userResult = await query(
-      `SELECT id, email, subscription_status, trial_end_date, preferred_species, 
-       notification_settings, created_at, updated_at 
+      `SELECT id, email, subscription_status, subscription_tier, 
+       first_name, last_name, phone, trial_end_date, 
+       preferred_species, notification_settings, 
+       created_at, updated_at 
        FROM users WHERE id = $1`,
       [req.user.userId]
     )
@@ -152,15 +154,31 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // Update user preferences
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { preferredSpecies, notificationSettings } = req.body
+    const { 
+      firstName, 
+      lastName, 
+      phone, 
+      preferredSpecies, 
+      notificationSettings 
+    } = req.body
 
     await query(
       `UPDATE users SET 
-       preferred_species = COALESCE($1, preferred_species),
-       notification_settings = COALESCE($2, notification_settings),
+       first_name = COALESCE($1, first_name),
+       last_name = COALESCE($2, last_name),
+       phone = COALESCE($3, phone),
+       preferred_species = COALESCE($4, preferred_species),
+       notification_settings = COALESCE($5, notification_settings),
        updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3`,
-      [preferredSpecies, notificationSettings ? JSON.stringify(notificationSettings) : null, req.user.userId]
+       WHERE id = $6`,
+      [
+        firstName, 
+        lastName, 
+        phone, 
+        preferredSpecies, 
+        notificationSettings ? JSON.stringify(notificationSettings) : null, 
+        req.user.userId
+      ]
     )
 
     res.json({ message: 'Profile updated successfully' })

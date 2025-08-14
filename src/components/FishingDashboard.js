@@ -21,13 +21,9 @@ export default function FishingDashboard() {
   const [dailyReport, setDailyReport] = useState(null)
   const [editingCatch, setEditingCatch] = useState(null)
   const [mapInstance, setMapInstance] = useState(null)
-  
-  // Debug state changes
-  console.log('🏠 Dashboard component rendering with userCatches:', userCatches?.length, 'catches')
 
   useEffect(() => {
     // Load current conditions on dashboard mount
-    console.log('🚀 Dashboard mounting, fetching data...')
     fetchCurrentConditions()
     fetchUserCatches()
     fetchDailyReport()
@@ -37,20 +33,11 @@ export default function FishingDashboard() {
     // Update AI recommendations when species changes or daily report is loaded
     fetchAIRecommendations()
   }, [selectedSpecies, dailyReport])
-  
-  useEffect(() => {
-    // Debug userCatches state changes
-    console.log('🔄 userCatches state changed:', userCatches?.length, 'catches')
-    if (userCatches?.length > 0) {
-      console.log('📋 Sample catch:', userCatches[0])
-    }
-  }, [userCatches])
 
   // Listen for voice workflow catches
   useEffect(() => {
     const handleVoiceCatch = (event) => {
       const newCatch = event.detail
-      console.log('🎤 Voice catch received:', newCatch)
       handleCatchLogged(newCatch)
     }
 
@@ -70,7 +57,6 @@ export default function FishingDashboard() {
       }
       
       const weatherData = await response.json()
-      console.log('Complete weather + water temperature data received:', weatherData)
       
       // Update conditions with real data including water temperature
       setCurrentConditions({
@@ -92,7 +78,6 @@ export default function FishingDashboard() {
         dataSources: weatherData.dataSources
       })
     } catch (error) {
-      console.error('Error fetching conditions:', error)
       // Fallback to mock data if API fails
       setCurrentConditions({
         windSpeed: 8,
@@ -111,30 +96,17 @@ export default function FishingDashboard() {
 
   const fetchUserCatches = async () => {
     try {
-      console.log('🚀 Starting fetchUserCatches...')
       const response = await authenticatedFetch(`${config.api.endpoints.catches.base}?_t=${Date.now()}`)
-      
-      console.log('📡 Fetch response status:', response.status, response.statusText)
       
       if (response.ok) {
         const catches = await response.json()
-        console.log('🔄 fetchUserCatches received from API:', catches)
-        console.log('🔍 First catch species:', catches[0]?.species)
-        console.log('🆔 First catch ID:', catches[0]?.id)
-        console.log('📸 First catch photo:', catches[0]?.photoUrl)
-        
-        console.log('📝 About to call setUserCatches with:', catches)
         setUserCatches(catches)
-        console.log('✅ setUserCatches called')
       } else {
-        console.error('❌ Failed to fetch catches from API, status:', response.status)
         setUserCatches([])
       }
     } catch (error) {
-      console.error('💥 Error fetching catches:', error)
       // If it's an authentication error, don't set empty array - let the AuthContext handle redirect
       if (error.message === 'No authentication token' || error.message === 'Authentication expired') {
-        console.log('🔐 Authentication error - letting AuthContext handle redirect')
         return // Don't set empty array, let the page redirect
       }
       setUserCatches([])
@@ -167,7 +139,6 @@ export default function FishingDashboard() {
         // Look for "- Species name" at start of line
         const speciesHeaderRegex = new RegExp(`^-\\s*${alias}\\s*$`, 'i')
         if (speciesHeaderRegex.test(line)) {
-          console.log(`✅ Found ${alias} section at line ${i}`)
           
           // Collect all indented content until next species or section
           const speciesContent = []
@@ -194,15 +165,12 @@ export default function FishingDashboard() {
           const content = speciesContent.join('\n').trim()
           
           if (content.length > 50) {
-            console.log(`✅ Extracted ${content.length} chars for ${alias}`)
-            console.log(`Content preview:`, content.substring(0, 200) + '...')
             return content
           }
         }
       }
     }
     
-    console.log(`❌ No structured content found for ${targetSpecies}`)
     return null
   }
 
@@ -229,7 +197,6 @@ export default function FishingDashboard() {
         const solunarResponse = await fetch(config.api.endpoints.weather.solunar)
         if (solunarResponse.ok) {
           const solunarData = await solunarResponse.json()
-          console.log('Multi-source solunar data received:', solunarData)
           
           if (solunarData.fishingForecast && solunarData.fishingForecast.bestTimes) {
             bestTimes = solunarData.fishingForecast.bestTimes.map(period => {
@@ -250,7 +217,7 @@ export default function FishingDashboard() {
           }
         }
       } catch (solunarError) {
-        console.log('Solunar data fetch failed, using defaults:', solunarError.message)
+        // Fallback to defaults
       }
       
       // Extract species-specific recommendation from daily report
@@ -282,7 +249,6 @@ export default function FishingDashboard() {
         perplexitySearchEnabled: false // Daily reports don't use real-time search
       })
     } catch (error) {
-      console.error('Error fetching AI recommendations:', error)
       setAiRecommendations({
         text: 'Unable to load recommendations. Please check back later.',
         confidence: 50,
@@ -295,14 +261,12 @@ export default function FishingDashboard() {
 
   const fetchDailyReport = async () => {
     try {
-      console.log('📊 Fetching daily fishing report from database...')
       const response = await fetch(config.api.endpoints.weather.dailyReport)
       
       if (!response.ok) {
         // Handle different error cases
         if (response.status === 500) {
           const errorData = await response.json().catch(() => ({}))
-          console.log('Server error fetching report:', errorData)
           setDailyReport({
             error: true,
             message: 'Daily report is being generated. Please check back in a few minutes.',
@@ -314,7 +278,6 @@ export default function FishingDashboard() {
       }
       
       const reportData = await response.json()
-      console.log('Daily fishing report received:', reportData)
       
       if (reportData.success === false) {
         // Handle API errors gracefully
@@ -335,7 +298,6 @@ export default function FishingDashboard() {
         tokenCount: reportData.tokenCount
       })
     } catch (error) {
-      console.error('Error fetching daily fishing report:', error)
       // Set graceful error message instead of null
       setDailyReport({
         error: true,
@@ -346,10 +308,8 @@ export default function FishingDashboard() {
   }
 
   const handleCatchLogged = (newCatch) => {
-    console.log('📍 handleCatchLogged called with:', newCatch)
     setUserCatches(prev => {
       const updated = [newCatch, ...prev]
-      console.log('📍 Updated userCatches:', updated)
       return updated
     })
     fetchAIRecommendations() // Refresh recommendations with new data
@@ -393,15 +353,12 @@ export default function FishingDashboard() {
         alert('Failed to update catch')
       }
     } catch (error) {
-      console.error('Error updating catch:', error)
       alert('Error updating catch')
     }
   }
   
   const handleCatchDelete = async (catchId) => {
     try {
-      console.log('Deleting catch with ID:', catchId)
-      
       const response = await authenticatedFetch(config.api.endpoints.catches.byId(catchId), {
         method: 'DELETE'
       })
@@ -413,18 +370,15 @@ export default function FishingDashboard() {
         alert('Catch deleted successfully! 🗑️')
       } else {
         const errorData = await response.json()
-        console.error('Delete failed:', response.status, errorData)
         alert(`Failed to delete catch: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error deleting catch:', error)
       alert('Error deleting catch')
     }
   }
 
   const handleLocationClick = (latitude, longitude) => {
     if (mapInstance && mapInstance.centerOnLocation) {
-      console.log('Navigating to location:', { latitude, longitude })
       
       // Scroll to map section first for immediate feedback
       const mapElement = document.querySelector('[data-map-container]')
@@ -436,14 +390,11 @@ export default function FishingDashboard() {
       setTimeout(() => {
         mapInstance.centerOnLocation(latitude, longitude, 11)
       }, 200)
-    } else {
-      console.warn('Map instance not ready yet')
     }
   }
 
   const handleMapReady = (mapControls) => {
     setMapInstance(mapControls)
-    console.log('Map ready with controls:', mapControls)
   }
 
   // Helper function to filter catches based on mapFilterSpecies
@@ -631,11 +582,7 @@ export default function FishingDashboard() {
             </div>
           </div>
           <FishingMap 
-            catches={(() => {
-              const filtered = getFilteredCatches()
-              console.log('🗺️ Filtered catches for map:', filtered?.length, 'of', userCatches?.length, 'total', `(filter: ${mapFilterSpecies})`)
-              return filtered
-            })()}
+            catches={getFilteredCatches()}
             selectedSpecies={mapFilterSpecies}
             onMapReady={handleMapReady}
           />

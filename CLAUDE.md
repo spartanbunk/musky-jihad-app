@@ -46,55 +46,86 @@ npm run db:migrate
 npm test
 ```
 
-### Troubleshooting: Process and Port Management
+### Troubleshooting: Service Restart & Docker Desktop Management
 
-#### Problem: `npx kill-port` doesn't reliably kill processes
-- `npx kill-port 3010` reports success but process continues running
-- Docker Desktop connectivity issues with named pipes
-- Services restart but ports remain occupied
+#### Problem: Docker Desktop Dies During Process Restarts
+- Aggressive process killing affects Docker Desktop stability
+- Named pipe errors: `//./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`
+- Database connection failures after restarts
+- Environment variable loss in backend
 
-#### ✅ WORKING SOLUTIONS:
+#### ✅ RELIABLE RESTART PROCEDURE:
 
-**1. PowerShell Process Killing (Most Reliable)**
+**1. Check Docker Desktop Health First**
 ```bash
-# Find process using port
-netstat -ano | findstr :3010
+# Always verify Docker Desktop before restarting services
+./scripts/check-docker.sh
 
-# Kill by PID using PowerShell (WORKS)
-powershell "Stop-Process -Id [PID] -Force"
-
-# Example:
-powershell "Stop-Process -Id 22976 -Force"
+# If Docker fails: manually restart Docker Desktop, wait 3-5 minutes
 ```
 
-**2. Complete Service Restart Workflow**
+**2. Use Gentle Service Restart**
 ```bash
-# Step 1: Find and kill all processes
-netstat -ano | findstr :3010
-netstat -ano | findstr :3011
-powershell "Stop-Process -Id [PID1] -Force"
-powershell "Stop-Process -Id [PID2] -Force"
+# Recommended: Use automated script
+./scripts/restart-services.sh
 
-# Step 2: Verify ports are free
-netstat -ano | findstr :3010  # Should return nothing
-
-# Step 3: Restart services
-npm run dev &
-cd server && node index.js &
+# OR manual gentle restart:
+npx kill-port 3010 3011        # Graceful shutdown first
+sleep 3                        # Wait for cleanup
+netstat -ano | findstr :3010   # Check remaining processes
+powershell "Stop-Process -Id [PID] -Force"  # Only if needed
+npm run dev &                  # Start frontend
+npm run server:dev &           # Start backend (loads .env properly)
 ```
 
-**3. Docker Issues Workaround**
-When Docker Desktop fails with named pipe errors:
+**3. Environment Variable Validation**
 ```bash
-# Don't rely on Docker containers, use local services:
-npm run dev                    # Frontend on 3010
-cd server && node index.js    # Backend on 3011
+# Backend now validates critical env vars on startup:
+# - DATABASE_URL (should be localhost:5433 for Docker)
+# - JWT_SECRET
+# - PORT
+
+# If validation fails, check .env file exists and is readable
 ```
 
-#### ❌ METHODS THAT DON'T WORK:
-- `npx kill-port` - Reports success but processes persist
-- `taskkill /PID` - Git Bash path issues
-- `docker-compose down` - When Docker connectivity is broken
+**4. Service Health Verification**
+```bash
+# Check all services are running
+netstat -ano | findstr :3010   # Frontend
+netstat -ano | findstr :3011   # Backend  
+docker ps                      # Database containers
+curl http://localhost:3011/api/health  # Backend health
+```
+
+#### ⚠️ DOCKER DESKTOP RECOVERY:
+When Docker Desktop becomes unresponsive:
+```bash
+# 1. Check Docker status
+docker ps  # If this fails, Docker Desktop is down
+
+# 2. Manual restart required
+# - Close Docker Desktop completely
+# - Restart Docker Desktop from Start menu  
+# - Wait 3-5 minutes for full initialization
+# - Verify with: docker ps
+
+# 3. Start database containers
+docker-compose up -d
+
+# 4. Restart application services
+./scripts/restart-services.sh
+```
+
+#### ❌ PROBLEMATIC METHODS (AVOID):
+- **Aggressive process killing without Docker health checks**
+- **Starting backend with `node index.js` (misses .env loading)**  
+- **Restarting services while Docker Desktop is unhealthy**
+- **Force killing processes without graceful shutdown first**
+
+#### 🔧 RECOVERY PATTERNS:
+- **Pattern**: Restart services → Docker dies → 5min recovery
+- **Fix**: Always check Docker health before service restart
+- **Time**: Gentle restart ~30 seconds vs aggressive restart ~5 minutes
 
 ### Development Best Practices
 - **NEVER COMMIT BEFORE TESTING**: Always thoroughly test functionality before creating git commits

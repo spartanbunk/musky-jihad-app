@@ -9,7 +9,11 @@
     "lint": "next lint",
     "server": "node server/index.js",
     "server:dev": "set NODE_ENV=development&& node server/index.js",
-    "db:migrate": "node server/migrations/migrate.js"
+    "db:migrate": "node server/migrations/migrate.js",
+    "stop": "npx kill-port 3010 3011",
+    "docker:check": "bash scripts/check-docker.sh",
+    "services:restart": "bash scripts/restart-services.sh",
+    "services:health": "netstat -ano | findstr :3010 && netstat -ano | findstr :3011 && docker ps"
   },
   "dependencies": {
     "axios": "^1.6.0",

@@ -5,6 +5,26 @@ const morgan = require('morgan')
 const path = require('path')
 require('dotenv').config()
 
+// Environment variable validation
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'PORT'
+]
+
+console.log('🔧 Validating environment variables...')
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars)
+  console.error('💡 Make sure .env file exists and is properly loaded')
+  process.exit(1)
+}
+
+console.log('✅ Environment variables validated')
+console.log('DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'))
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Missing')
+
 // Ensure NODE_ENV is set (fallback to development if not specified)
 // Trim any whitespace from NODE_ENV
 process.env.NODE_ENV = (process.env.NODE_ENV || 'development').trim()

@@ -13,19 +13,18 @@ const SPECIES_MAPPINGS = {
   'crappie': ['crappie', 'crappy', 'paper mouth']
 }
 
-// Common lure types with variations
+// Lure types matching CatchLogger modal options exactly
 const LURE_MAPPINGS = {
-  'bucktail': ['bucktail', 'buck tail', 'tail', 'buck'],
-  'crankbait': ['crankbait', 'crank bait', 'crank', 'diving lure', 'dive', 'diving'],
-  'jig': ['jig', 'jig head', 'lead head', 'head'],
-  'spinnerbait': ['spinnerbait', 'spinner bait', 'spinner', 'blade', 'bladed'],
-  'topwater': ['topwater', 'top water', 'surface lure', 'popper', 'surface', 'top'],
-  'soft plastic': ['soft plastic', 'plastic worm', 'rubber', 'grub', 'plastic', 'soft'],
-  'spoon': ['spoon', 'casting spoon', 'trolling spoon', 'metal'],
-  'live bait': ['live bait', 'minnow', 'worm', 'leech', 'live', 'bait'],
-  'swimbait': ['swimbait', 'swim bait', 'swim', 'paddle tail'],
-  'glide bait': ['glide bait', 'glide', 'glider'],
-  'tube': ['tube', 'tube jig', 'hollow body']
+  'Bucktail': ['bucktail', 'buck tail', 'tail', 'buck', 'musky buck', 'hair jig', 'spinner bait', 'blade', 'bucket', 'bucket tail', 'bucktails'],
+  'Crankbait': ['crankbait', 'crank bait', 'crank', 'diving lure', 'dive', 'diving', 'plug', 'deep dive', 'shallow dive', 'minnow plug', 'lipless', 'vibe'],
+  'Jerkbait': ['jerkbait', 'jerk bait', 'minnow bait', 'suspending', 'twitch bait', 'husky jerk', 'rogue', 'pointer', 'stick bait', 'stickbait'],
+  'Topwater': ['topwater', 'top water', 'surface lure', 'popper', 'surface', 'top', 'buzzbait', 'buzz bait', 'frog', 'walker', 'prop bait', 'wake bait', 'pencil'],
+  'Soft Plastic': ['soft plastic', 'plastic', 'rubber', 'grub', 'soft', 'tube', 'worm', 'creature', 'paddle tail', 'shad body', 'swimbait', 'swim bait'],
+  'Spinnerbait': ['spinnerbait', 'spinner bait', 'spinner', 'blade', 'bladed', 'colorado', 'willow', 'double blade', 'chatterbait', 'chatter bait', 'vibrating jig'],
+  'Jig': ['jig', 'jig head', 'lead head', 'head', 'leadhead', 'hair jig', 'marabou jig', 'football jig', 'swim jig'],
+  'Live Bait': ['live bait', 'live', 'bait', 'minnow', 'sucker', 'worm', 'leech', 'shiner', 'fathead', 'nightcrawler'],
+  'Trolling Spoon': ['trolling spoon', 'spoon', 'casting spoon', 'metal', 'flutter spoon', 'wobbler', 'flutter', 'heavy spoon', 'slug'],
+  'Other': ['other', 'different', 'custom', 'homemade', 'fly', 'streamer', 'glide bait', 'glider', 'musky killer']
 }
 
 // Number word mappings for voice input
@@ -44,11 +43,19 @@ export function fuzzyMatch(input, options, threshold = 0.6) {
   
   for (const [key, variations] of Object.entries(options)) {
     for (const variation of variations) {
+      // Exact substring matching (prioritized)
       if (inputLower.includes(variation) || variation.includes(inputLower)) {
         return key
       }
       
-      // Check for partial matches
+      // Special case for partial word matches (like "buck" for "bucktail")
+      if (variation.length >= 4 && inputLower.length >= 3) {
+        if (inputLower.startsWith(variation.substring(0, 3)) || variation.startsWith(inputLower.substring(0, 3))) {
+          return key
+        }
+      }
+      
+      // Check for fuzzy similarity
       const similarity = calculateSimilarity(inputLower, variation)
       if (similarity >= threshold) {
         return key
@@ -157,36 +164,88 @@ export function parseSpecies(transcript) {
 
 // Parse lure type from speech
 export function parseLure(transcript) {
-  console.log('Parsing lure from transcript:', transcript)
-  const result = fuzzyMatch(transcript, LURE_MAPPINGS, 0.3)
-  console.log('Lure parsing result:', result)
+  console.log('=== LURE PARSING DEBUG ===')
+  console.log('Input transcript:', transcript)
+  console.log('Cleaned transcript:', transcript.toLowerCase().trim())
+  
+  // Try exact matching first, then fuzzy matching
+  const result = fuzzyMatch(transcript, LURE_MAPPINGS, 0.4)
+  
+  console.log('Fuzzy match result:', result)
+  console.log('Available lure types:', Object.keys(LURE_MAPPINGS))
+  
+  // Test each lure type individually for debugging
+  for (const [lureType, variations] of Object.entries(LURE_MAPPINGS)) {
+    const matches = variations.filter(variation => 
+      transcript.toLowerCase().includes(variation) || variation.includes(transcript.toLowerCase())
+    )
+    if (matches.length > 0) {
+      console.log(`Direct match found for ${lureType}:`, matches)
+    }
+  }
+  
+  console.log('Final result:', result)
+  console.log('=== END LURE PARSING DEBUG ===')
+  
   return result
 }
 
 // Check for catch confirmation phrases with yes/no detection
 export function isCatchConfirmation(transcript) {
+  // Enhanced yes patterns for better recognition
   const yesPhases = [
+    // Simple affirmatives
+    'yes', 'yeah', 'yep', 'yup', 'ya', 'uh huh', 'mm hmm', 'sure', 'correct', 'right', 'true', 'affirm', 'positive',
+    
+    // Casual confirmations  
+    'that\'s right', 'that\'s correct', 'exactly', 'you got it', 'bingo', 'spot on', 'perfect', 'absolutely',
+    
+    // Variations with context
+    'yes that\'s right', 'yeah that\'s correct', 'yep that\'s it', 'that\'s what I said',
+    
+    // Original catch-specific phrases
     'nice catch', 'good catch', 'nice one', 'got him', 'got it', 
-    'fish on', 'caught one', 'landed', 'hooked up', 'yes', 'yeah', 'yep', 'yup'
+    'fish on', 'caught one', 'landed', 'hooked up'
   ]
   
+  // Enhanced no patterns for better recognition
   const noPhases = [
-    'no', 'nope', 'didn\'t get', 'didn\'t catch', 'missed', 'lost him', 
+    // Simple negatives
+    'no', 'nope', 'nah', 'uh uh', 'negative', 'incorrect', 'wrong', 'false',
+    
+    // Casual denials
+    'that\'s not right', 'that\'s wrong', 'not correct', 'try again', 'no way',
+    
+    // Variations with context
+    'no that\'s not right', 'nope that\'s wrong', 'that\'s not what I said',
+    
+    // Original fishing-specific phrases
+    'didn\'t get', 'didn\'t catch', 'missed', 'lost him', 
     'lost it', 'nothing', 'no luck', 'strike out', 'struck out'
   ]
   
   const text = transcript.toLowerCase().trim()
-  console.log('Checking catch confirmation for:', text)
+  console.log('=== CONFIRMATION RECOGNITION DEBUG ===')
+  console.log('Input transcript:', transcript)
+  console.log('Cleaned text:', text)
   
-  const isYes = yesPhases.some(phrase => 
+  // Check for yes responses
+  const matchedYes = yesPhases.filter(phrase => 
     text.includes(phrase) || phrase.includes(text)
   )
   
-  const isNo = noPhases.some(phrase => 
+  // Check for no responses  
+  const matchedNo = noPhases.filter(phrase => 
     text.includes(phrase) || phrase.includes(text)
   )
   
-  console.log('Catch confirmation result:', { isYes, isNo, isResponse: isYes || isNo })
+  const isYes = matchedYes.length > 0
+  const isNo = matchedNo.length > 0
+  
+  console.log('Matched YES phrases:', matchedYes)
+  console.log('Matched NO phrases:', matchedNo)
+  console.log('Final result:', { isYes, isNo, isResponse: isYes || isNo })
+  console.log('=== END CONFIRMATION RECOGNITION DEBUG ===')
   
   if (isYes) return { confirmed: true, isResponse: true }
   if (isNo) return { confirmed: false, isResponse: true }
@@ -196,16 +255,30 @@ export function isCatchConfirmation(transcript) {
 
 // Check for mark fish commands
 export function isMarkFishCommand(transcript) {
+  console.log('🔍 === isMarkFishCommand DEBUG ===')
+  console.log('🔍 Input transcript:', transcript)
+  console.log('🔍 Input type:', typeof transcript)
+  
   const markCommands = [
     'mark fish', 'mark spot', 'fish here', 'mark location', 
     'mark this spot', 'mark it', 'mark'
   ]
   
   const text = transcript.toLowerCase().trim()
+  console.log('🔍 Processed text:', text)
+  console.log('🔍 Mark commands to check:', markCommands)
   
-  return markCommands.some(command => 
-    text.includes(command) || command.includes(text)
-  )
+  const result = markCommands.some(command => {
+    const includes1 = text.includes(command)
+    const includes2 = command.includes(text)
+    console.log(`🔍 Checking "${command}": text.includes(${includes1}) || command.includes(${includes2})`)
+    return includes1 || includes2
+  })
+  
+  console.log('🔍 Final result:', result)
+  console.log('🔍 === END isMarkFishCommand DEBUG ===')
+  
+  return result
 }
 
 // Default exports
