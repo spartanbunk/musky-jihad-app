@@ -1143,6 +1143,7 @@ export default function VoiceActivation({ currentConditions }) {
           photoUrl: photoUrl,
           catchTime: newCatch.catchTime || new Date().toISOString(),
           userId: newCatch.userId,
+          conditions: catchPayload.conditions,
           speciesConfig: {
             emoji: getSpeciesEmoji(catchData.species),
             color: getSpeciesColor(catchData.species)
